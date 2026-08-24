@@ -12,3 +12,6 @@
 
 完整的能力边界、模块划分、技术选型和路线图见
 [docs/engine-architecture.md](docs/engine-architecture.md)。
+
+按阶段执行的实现计划见
+[docs/implementation-plan.md](docs/implementation-plan.md)。
