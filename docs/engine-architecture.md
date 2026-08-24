@@ -15,6 +15,8 @@
 - 地图编辑器
 - 自研 ECS、物理引擎、网络协议和脚本语言
 
+3D 只保留未来独立扩展的可能，不进入当前目标、目录、公共 API、示例、依赖或验收标准。未来若重新立项，应单独进行架构评审；当前不为 3D 提前创建模块。
+
 ## 2. 总体边界
 
 ```text
@@ -227,7 +229,7 @@ Transform2D 支持：
 - dirty 标记和缓存矩阵
 - anchor / pivot
 
-不提前引入四元数和 3D Transform。未来若需要 3D，增加独立 Transform3D，不强迫 2D API 变成 3D API。
+不提前引入四元数和 3D Transform。未来若重新立项，可增加独立 Transform3D，不强迫 2D API 变成 3D API。
 
 ### 3.8 Assets
 

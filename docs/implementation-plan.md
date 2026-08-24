@@ -9,6 +9,8 @@
 - 不为了未来 3D、UI 或网络同步提前实现对应系统。
 - 阶段结束后再冻结该阶段的公共 API，避免一次设计完整引擎。
 
+3D 不属于当前实施路线。当前不创建 `src/3d`、3D 公共 API、3D 示例或 3D 性能目标；未来是否增加 3D 需要另行立项和评审。
+
 ## 2. 依赖关系
 
 ```text
@@ -310,4 +312,4 @@ Network Transport 实现：
 5. M3：实现 Camera2D、TexturedQuad、Image2D 和单一 batch。
 6. M3：实现 Sprite atlas frame 和 benchmark。
 
-M3 完成并通过基准前，不创建 Tilemap、UI 组件、网络同步或 3D 目录。
+M3 完成并通过基准前，不创建 Tilemap、UI 组件或网络同步目录；3D 始终不属于当前实施计划。
