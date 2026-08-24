@@ -30,6 +30,7 @@ Engine Runtime
   ├── Interaction Router
   ├── GPU Core
   ├── Renderer2D
+  ├── Text2D
   ├── World and Transform2D
   ├── Assets
   ├── Animation
@@ -131,16 +132,41 @@ Modal / focused UI
 
 ### 3.5 Renderer2D
 
-第一版只实现 2D 渲染：
+Renderer2D 是通用 2D 绘制层，不等同于 Sprite Renderer。它负责组织 render pass、相机、排序、裁剪和批处理，不负责加载资源、推进动画或排版文字。
+
+第一版支持：
 
 - 正交相机
-- Sprite 和纹理图集
+- Image2D、Sprite 和纹理图集
 - 实例化 quad
 - 动态 instance buffer
 - alpha blending
 - layer / sort key
 - scissor 和简单裁剪
 - render target（在需要后处理时启用）
+
+内部以 TexturedQuad 作为主要渲染原语：
+
+```text
+TexturedQuad
+  texture
+  uv
+  transform
+  size
+  anchor
+  color
+  layer / sort key
+```
+
+普通图片使用完整 UV 的 Image2D；Sprite 使用纹理图集中的局部 UV 和 frame 信息；Tilemap 会生成大量同类 quad。它们共享同一个批处理器，不需要为“普通图片”和“Sprite”维护两条 GPU 渲染路径。
+
+```text
+Image2D ───────────────┐
+Sprite -> atlas frame ─┼─> TexturedQuad Batch -> Renderer2D
+Tilemap -> chunk data ─┘
+```
+
+Image2D 只描述当前图片的绘制状态。Sprite 在 Image2D 之上增加 atlas frame 语义，但不保存播放时间、循环状态或动画状态机。
 
 典型批处理流程：
 
@@ -151,9 +177,34 @@ RenderItem
   -> 每个 batch 一次 draw
 ```
 
-不要每个 Sprite 一次 draw。静态内容可缓存，动态内容独立批处理。Render Graph 延后到出现多个真实渲染 pass 后再实现。
+不要每个 Image2D 或 Sprite 一次 draw。静态内容可缓存，动态内容独立批处理。Render Graph 延后到出现多个真实渲染 pass 后再实现。
 
-### 3.6 World and Transform2D
+### 3.6 Text2D
+
+文字排版和字形生成不放入 Renderer2D，但 Text2D 是引擎自带的 2D 能力。它负责把文字转换为 Renderer2D 可以批量绘制的纹理 quad。
+
+第一版使用浏览器原生字体能力：
+
+- `FontFace` 加载字体
+- Canvas2D 或 OffscreenCanvas 测量并栅格化 text run
+- 将结果缓存到 text atlas
+- 生成一个或多个 TexturedQuad
+- Renderer2D 负责最终绘制
+
+```text
+Text2D
+  -> font loading / measurement
+  -> text run rasterization
+  -> text atlas
+  -> TexturedQuad Batch
+  -> Renderer2D
+```
+
+第一版优先缓存完整 text run，让浏览器处理 CJK、ligature 和复杂字体组合，避免立即引入自研 shaping 或逐 glyph 布局。大量动态数字或需要连续缩放时，再增加数字图集或 SDF/MSDF 字体路径。
+
+Text2D 面向世界文字、地图标签、飘字和 debug label。DOM UI 中的按钮、列表、输入框和正文仍由 UI 扩展负责，不通过 Text2D 绘制。IME 和文本编辑也不属于 Text2D。
+
+### 3.7 World and Transform2D
 
 第一版使用数字 Entity ID 和简单组件存储，不引入 ECS 库：
 
@@ -174,11 +225,12 @@ Transform2D 支持：
 
 不提前引入四元数和 3D Transform。未来若需要 3D，增加独立 Transform3D，不强迫 2D API 变成 3D API。
 
-### 3.7 Assets
+### 3.8 Assets
 
 使用浏览器原生能力：
 
 - 图片：`fetch` + `createImageBitmap`
+- 字体：`FontFace`
 - JSON：`fetch` + `response.json`
 - 音频：`AudioContext.decodeAudioData`
 - WGSL：文本资源
@@ -195,7 +247,7 @@ Asset Manager 负责：
 
 第一版不做资源数据库、复杂依赖图和编辑器工程文件。
 
-### 3.8 Animation
+### 3.9 Animation
 
 动画系统与具体渲染器分离：
 
@@ -207,9 +259,21 @@ Asset Manager 负责：
 - animation event marker
 - 基础 easing
 
+Sprite 只保存当前 frame/UV，Animator 保存播放时间和状态。Sprite animation binding 负责将采样结果写回 Sprite：
+
+```text
+Time
+  -> AnimationSystem
+  -> SpriteAnimationBinding
+  -> Sprite.frame / uv
+  -> Renderer2D
+```
+
+第一版只实现 AnimationPlayer、SpriteFrameClip、SpriteAnimationBinding 和动画事件。Transform、颜色等 Track 在出现第二个实际动画目标后再增加，不提前实现属性反射、状态机或 Blend Tree。
+
 UI 展开、淡入淡出等优先使用 CSS/Web Animations。角色和地图中的可视对象使用引擎 Animation。
 
-### 3.9 Audio
+### 3.10 Audio
 
 使用 Web Audio API：
 
@@ -222,7 +286,7 @@ UI 展开、淡入淡出等优先使用 CSS/Web Animations。角色和地图中�
 
 不引入 Howler 等播放封装。空间音频和复杂混音等需求出现后再扩展。
 
-### 3.10 Spatial
+### 3.11 Spatial
 
 第一版提供简单均匀网格或 AABB 查询：
 
@@ -234,7 +298,7 @@ UI 展开、淡入淡出等优先使用 CSS/Web Animations。角色和地图中�
 
 不预先实现 quadtree、R-tree 或 navmesh。通过基准测试确定需要后再替换内部实现。
 
-### 3.11 Tilemap（可选模块）
+### 3.12 Tilemap（可选模块）
 
 Tilemap 不属于引擎核心，但可作为通用扩展：
 
@@ -250,7 +314,7 @@ Tileset
 
 地图工具建议优先使用 Tiled，通过 importer 转换为内部 `MapAsset`。运行时不直接依赖 Tiled JSON，也不同时支持多个地图格式。
 
-### 3.12 Network Transport（可选模块）
+### 3.13 Network Transport（可选模块）
 
 引擎只提供通用传输能力：
 
@@ -262,7 +326,7 @@ Tileset
 
 服务器权威、快照、插值、预测、回滚和业务协议属于游戏层，不进入引擎核心。
 
-### 3.13 UI Bridge（不提供 UI 组件）
+### 3.14 UI Bridge（不提供 UI 组件）
 
 引擎提供：
 
@@ -327,6 +391,7 @@ src/
   interaction/
   gpu/
   render2d/
+  text2d/
   world/
   animation/
   assets/
@@ -339,6 +404,7 @@ src/
 examples/
   triangle/
   sprites/
+  text/
   animation/
   audio/
   tilemap/
@@ -347,7 +413,7 @@ examples/
 tests/
 ```
 
-示例是引擎验收工具，不是验证游戏。至少保留：Sprite 批处理、动画/音频、Tilemap chunk 和性能基准四个示例。
+示例是引擎验收工具，不是验证游戏。至少保留：Image2D/Sprite 批处理、Text2D、动画/音频、Tilemap chunk 和性能基准示例。
 
 ## 6. 实施阶段
 
@@ -365,22 +431,24 @@ tests/
 ### 阶段 1：2D 渲染
 
 - Texture、Sampler、Shader、Pipeline
-- Sprite 和 atlas
+- Image2D、Sprite 和 atlas
 - 实例化 batch
 - Camera2D
 - layer/sort
 - viewport culling
 - 基础 benchmark
 
-验收：Sprite 数量增加时，draw 数量按 batch 增长，而不是按 Sprite 数量增长。
+验收：Image2D 和 Sprite 数量增加时，draw 数量按 batch 增长，而不是按对象数量增长；普通图片与 atlas frame 共享批处理路径。
 
 ### 阶段 2：运行时基础
 
 - World 和 Entity ID
 - Transform2D
 - Assets
+- Text2D 和 text atlas
 - Input 和 action mapping
 - Animation
+- Sprite animation binding
 - Audio
 - Interaction Router
 - Debug stats
@@ -419,6 +487,9 @@ Interaction
 Audio
 Renderer2D
 Camera2D
+Image2D
+Sprite
+Text2D
 ```
 
 游戏层可以获取必要的只读状态和扩展点，但不直接接管 GPU 资源生命周期。引擎内部实现可以变化，公共 API 不应暴露尚未稳定的 ECS、Render Graph 或 UI 组件抽象。
@@ -428,7 +499,8 @@ Camera2D
 引擎第一阶段不以完整游戏为验收标准，而以以下能力为准：
 
 - WebGPU 正确初始化和恢复
-- 2D Sprite 批处理有效
+- 普通图片、Sprite 和 Tilemap 共享有效的 TexturedQuad 批处理
+- 世界文字可以通过 Text2D 缓存并绘制，DOM UI 文字不进入该路径
 - 资源加载、缓存和释放可观察
 - 固定 timestep 稳定
 - 动画和音频独立工作
@@ -436,4 +508,3 @@ Camera2D
 - Tilemap 作为可选模块工作
 - UI 扩展不需要修改核心渲染器
 - 有浏览器 smoke test 和可重复性能基准
-

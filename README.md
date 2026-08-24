@@ -5,11 +5,10 @@
 当前范围：
 
 - WebGPU + WGSL
-- 2D / 2.5D 渲染，不实现 3D
+- Image2D、Sprite、Text2D 和 2D / 2.5D 渲染，不实现 3D
 - 浏览器原生输入、音频和资源加载
 - 引擎提供输入与交互基础设施，不内置 UI 组件库
 - Tilemap、网络和物理作为可选模块
 
 完整的能力边界、模块划分、技术选型和路线图见
 [docs/engine-architecture.md](docs/engine-architecture.md)。
-
