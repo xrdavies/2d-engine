@@ -12,3 +12,20 @@ test("device example reports a WebGPU result", async ({ page }) => {
     /WebGPU (device ready|unavailable)/,
   );
 });
+
+test("sprite example renders or reports unavailable WebGPU", async ({
+  page,
+}) => {
+  await page.goto("/examples/sprites/");
+  await expect(page.locator("#status")).toHaveText(
+    /Rendered Image2D and Sprite|WebGPU unavailable/,
+  );
+  const rendered = await page.evaluate(
+    () =>
+      (window as unknown as { __engineRendered?: boolean }).__engineRendered ===
+      true,
+  );
+  if (rendered) {
+    await expect(page.locator("#stats")).toHaveText(/batches/);
+  }
+});
