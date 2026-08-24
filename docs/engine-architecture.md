@@ -183,22 +183,26 @@ RenderItem
 
 文字排版和字形生成不放入 Renderer2D，但 Text2D 是引擎自带的 2D 能力。它负责把文字转换为 Renderer2D 可以批量绘制的纹理 quad。
 
-第一版使用浏览器原生字体能力：
+Text2D 分为三个步骤：
+
+```text
+TextLayout
+  -> line/segment positions
+TextRasterizer
+  -> glyph/text-run pixels
+TextAtlas
+  -> TexturedQuad Batch -> Renderer2D
+```
+
+第一版的 rasterizer 使用浏览器原生字体能力：
 
 - `FontFace` 加载字体
-- Canvas2D 或 OffscreenCanvas 测量并栅格化 text run
+- Canvas2D 或 OffscreenCanvas 栅格化 text run
 - 将结果缓存到 text atlas
 - 生成一个或多个 TexturedQuad
 - Renderer2D 负责最终绘制
 
-```text
-Text2D
-  -> font loading / measurement
-  -> text run rasterization
-  -> text atlas
-  -> TexturedQuad Batch
-  -> Renderer2D
-```
+测量和换行使用可替换的 TextLayout 后端。简单单行文字可以直接使用 Canvas `measureText()`；多语言、多行、虚拟列表和频繁 resize 场景使用可选的 `@chenglou/pretext`。Pretext 只负责测量、断行和行范围，不负责字体栅格化、文字图集或 WebGPU 绘制。
 
 第一版优先缓存完整 text run，让浏览器处理 CJK、ligature 和复杂字体组合，避免立即引入自研 shaping 或逐 glyph 布局。大量动态数字或需要连续缩放时，再增加数字图集或 SDF/MSDF 字体路径。
 
@@ -378,8 +382,9 @@ UI 扩展可以选择 DOM/CSS 或引擎渲染，但不应改变核心 Input/Inte
 | 2D 物理 | Rapier 2D 官方 JS/WASM binding | 游戏玩法确认需要刚体物理后 |
 | 地图编辑 | Tiled 外部工具 | 开始制作地图内容后 |
 | 纹理图集 | 外部图集工具 | 美术资源流程稳定后 |
+| 多语言文本测量和换行 | `@chenglou/pretext` | Text2D 或 UI 扩展需要多行布局、虚拟列表或频繁测量时 |
 
-明确不引入 PixiJS、Phaser、Three.js、Howler、Socket.IO、RxJS、ECS 库、通用 tween 库和 WGSL 反射库。
+明确不引入无作用域的 `pretext`（Markdown-inspired markup 工具）、PixiJS、Phaser、Three.js、Howler、Socket.IO、RxJS、ECS 库、通用 tween 库和 WGSL 反射库。
 
 ## 5. 仓库结构
 
