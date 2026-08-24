@@ -22,7 +22,7 @@ M0 Toolchain
           -> M5 Assets / Input / Animation / Audio
             -> M6 Text2D
               -> M7 Spatial / Tilemap
-                -> M8 Interaction / UI Bridge / Network Transport
+                  -> M8 Interaction / UI Bridge / Network
                   -> M9 Hardening / Release
 ```
 
@@ -228,7 +228,7 @@ Pretext 只负责测量、换行和行范围。字体栅格化仍由 Canvas2D，
 - tilemap 和动态 entity 使用独立更新路径
 - importer 不让运行时依赖 Tiled 编辑器或 JSON 结构
 
-### M8：UI Bridge 和 Network Transport
+### M8：UI Bridge 和 Network
 
 目标：为未来 UI 扩展和网络游戏提供稳定的接入边界。
 
@@ -242,14 +242,24 @@ UI Bridge 实现：
 
 不实现 Button、Panel、List、布局、主题或 UI 渲染器。
 
-Network Transport 实现：
+HTTP request/response 实现：
+
+- 原生 `fetch` 封装
+- `AbortSignal` 取消
+- timeout
+- HTTP status 检查
+- JSON、文本和 ArrayBuffer 响应
+
+WebSocket realtime transport 实现：
 
 - WebSocket 连接状态
 - 文本和 ArrayBuffer 收发
 - timeout、close、reconnect
 - message envelope
 
-不实现服务器权威、快照、预测、回滚或游戏协议。
+HTTP 用于启动配置、登录、资源元数据、存档和非实时命令；WebSocket 用于服务器推送、实时事件和长连接状态变化。
+
+不实现鉴权流程、API 路径、序列化 schema、服务器权威、快照、预测、回滚或游戏协议。
 
 验收：
 

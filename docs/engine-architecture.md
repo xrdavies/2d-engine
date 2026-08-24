@@ -39,7 +39,7 @@ Engine Runtime
   ├── Audio
   ├── Spatial (optional)
   ├── Tilemap (optional)
-  ├── Network Transport (optional)
+  ├── Network (optional)
   └── Diagnostics
 
 Extensions / Game
@@ -242,6 +242,8 @@ Transform2D 支持：
 - WGSL：文本资源
 - 取消：`AbortSignal`
 
+资源加载和 HTTP 请求都使用浏览器 Fetch API。Asset Manager 负责资源语义；网络模块只提供薄的请求封装，不重复实现 HTTP 协议。
+
 Asset Manager 负责：
 
 - URL/ID 到资源的缓存
@@ -320,9 +322,20 @@ Tileset
 
 地图工具建议优先使用 Tiled，通过 importer 转换为内部 `MapAsset`。运行时不直接依赖 Tiled JSON，也不同时支持多个地图格式。
 
-### 3.13 Network Transport（可选模块）
+### 3.13 Network（可选模块）
 
-引擎只提供通用传输能力：
+网络模块包含两种互补的传输：
+
+HTTP request/response：
+
+- 原生 `fetch`
+- `AbortSignal` 取消
+- timeout
+- HTTP status 检查
+- headers、JSON、文本和 ArrayBuffer 响应
+- 可选的请求 ID 和基础日志
+
+WebSocket realtime transport：
 
 - WebSocket 连接
 - 收发文本或 ArrayBuffer
@@ -330,7 +343,9 @@ Tileset
 - timeout 和 reconnect
 - message envelope
 
-服务器权威、快照、插值、预测、回滚和业务协议属于游戏层，不进入引擎核心。
+HTTP 适合启动配置、登录、资源元数据、存档和非实时命令；WebSocket 适合服务器推送、实时事件和长连接状态变化。
+
+服务器权威、鉴权流程、API 路径、序列化 schema、快照、插值、预测、回滚和业务协议属于游戏层，不进入引擎核心。引擎不引入 axios、ky、Socket.IO 等网络封装库。
 
 ### 3.14 UI Bridge（不提供 UI 组件）
 
