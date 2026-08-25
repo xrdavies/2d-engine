@@ -15,6 +15,10 @@ export interface PlayAudioOptions {
 export class AudioManager {
   readonly context: AudioContext;
   private readonly buses = new Map<string, AudioBus>();
+  private readonly busStates = new Map<
+    string,
+    { volume: number; muted: boolean }
+  >();
   private readonly sources = new Set<AudioBufferSourceNode>();
 
   constructor(context?: AudioContext) {
@@ -32,25 +36,29 @@ export class AudioManager {
     const existing = this.buses.get(name);
     if (existing) return existing;
     const gain = this.context.createGain();
+    const state = { volume: gain.gain.value, muted: false };
     if (name !== "master")
       gain.connect(this.buses.get(parent)?.gain ?? this.context.destination);
     else gain.connect(this.context.destination);
     const bus: AudioBus = {
       gain,
       get volume() {
-        return gain.gain.value;
+        return state.volume;
       },
       set volume(value: number) {
-        gain.gain.value = Math.max(0, value);
+        state.volume = Math.max(0, value);
+        if (!state.muted) gain.gain.value = state.volume;
       },
       get mute() {
-        return gain.gain.value === 0;
+        return state.muted;
       },
       set mute(value: boolean) {
-        gain.gain.value = value ? 0 : 1;
+        state.muted = value;
+        gain.gain.value = value ? 0 : state.volume;
       },
     };
     this.buses.set(name, bus);
+    this.busStates.set(name, state);
     return bus;
   }
 
@@ -72,12 +80,15 @@ export class AudioManager {
 
   fadeBus(name: string, volume: number, duration: number): void {
     const bus = this.buses.get(name);
-    if (!bus) throw new Error(`Unknown audio bus: ${name}`);
+    const state = this.busStates.get(name);
+    if (!bus || !state) throw new Error(`Unknown audio bus: ${name}`);
+    state.volume = Math.max(0, volume);
+    if (state.muted) return;
     const now = this.context.currentTime;
     bus.gain.gain.cancelScheduledValues(now);
     bus.gain.gain.setValueAtTime(bus.gain.gain.value, now);
     bus.gain.gain.linearRampToValueAtTime(
-      Math.max(0, volume),
+      state.volume,
       now + Math.max(0, duration),
     );
   }
@@ -122,6 +133,7 @@ export class AudioManager {
     this.stopAll();
     for (const bus of this.buses.values()) bus.gain.disconnect();
     this.buses.clear();
+    this.busStates.clear();
     void this.context.close();
   }
 }

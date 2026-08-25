@@ -46,6 +46,13 @@ describe("AudioManager", () => {
     expect(audio.activeSourceCount).toBe(1);
     audio.fadeBus("music", 0.25, 0.5);
     expect(audio.getBus("music")?.volume).toBe(0.25);
+    const music = audio.getBus("music");
+    if (!music) throw new Error("Missing music bus");
+    music.volume = 0.4;
+    music.mute = true;
+    expect(music.gain.gain.value).toBe(0);
+    music.mute = false;
+    expect(music.gain.gain.value).toBe(0.4);
     audio.stopAll();
     expect(audio.activeSourceCount).toBe(0);
     await audio.pause();
