@@ -18,6 +18,19 @@ export interface TextAtlasEntry {
   lastUsed: number;
 }
 
+export interface TextAtlasStats {
+  pageCount: number;
+  gpuTextureCount: number;
+  entryCount: number;
+  usedPixels: number;
+  capacityPixels: number;
+  occupancy: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
+  evictions: number;
+}
+
 interface FreeRect {
   x: number;
   y: number;
@@ -33,6 +46,7 @@ interface AtlasPage {
   rowHeight: number;
   entries: Set<string>;
   freeRects: FreeRect[];
+  usedPixels: number;
 }
 
 interface GpuPage {
@@ -67,6 +81,9 @@ export class TextAtlas {
   private readonly atlasPages: AtlasPage[] = [];
   private readonly gpuPages = new Set<GpuPage>();
   private accessCounter = 0;
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
 
   constructor(
     readonly width = 1024,
@@ -112,8 +129,13 @@ export class TextAtlas {
     rasterizer: TextRasterizer,
     scene = "global",
   ): TextAtlasEntry {
-    const existing = this.getEntry(key);
-    if (existing) return existing;
+    const existing = this.entries.get(key);
+    if (existing) {
+      this.hits += 1;
+      existing.lastUsed = ++this.accessCounter;
+      return existing;
+    }
+    this.misses += 1;
     while (this.entries.size >= this.maxEntries) this.evictLru();
     const value = this.getOrCreate(key, layout, style, rasterizer);
     if (value.width > this.width || value.height > this.height) {
@@ -166,6 +188,7 @@ export class TextAtlas {
       page.rowHeight = placement.nextRowHeight;
     }
     page.entries.add(key);
+    page.usedPixels += value.width * value.height;
     this.entries.set(key, entry);
     this.uploadEntry(entry);
     return entry;
@@ -179,6 +202,7 @@ export class TextAtlas {
     const page = this.atlasPages[entry.pageIndex];
     if (page) {
       page.entries.delete(key);
+      page.usedPixels -= entry.rasterized.width * entry.rasterized.height;
       page.freeRects.push({
         x: entry.x,
         y: entry.y,
@@ -207,6 +231,7 @@ export class TextAtlas {
       }
       if (!oldest) break;
       removed.push(oldest.key);
+      this.evictions += 1;
       this.remove(oldest.key);
     }
     return removed;
@@ -241,10 +266,34 @@ export class TextAtlas {
     this.gpuPages.clear();
     this.atlasPages.length = 0;
     this.accessCounter = 0;
+    this.hits = 0;
+    this.misses = 0;
+    this.evictions = 0;
   }
 
   get size(): number {
     return this.rasterized.size;
+  }
+
+  stats(): TextAtlasStats {
+    const usedPixels = this.atlasPages.reduce(
+      (total, page) => total + page.usedPixels,
+      0,
+    );
+    const capacityPixels = this.atlasPages.length * this.width * this.height;
+    const lookups = this.hits + this.misses;
+    return {
+      pageCount: this.atlasPages.length,
+      gpuTextureCount: this.gpuPages.size,
+      entryCount: this.entries.size,
+      usedPixels,
+      capacityPixels,
+      occupancy: capacityPixels === 0 ? 0 : usedPixels / capacityPixels,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: lookups === 0 ? 0 : this.hits / lookups,
+      evictions: this.evictions,
+    };
   }
 
   private createPage(): AtlasPage {
@@ -256,6 +305,7 @@ export class TextAtlas {
       rowHeight: 0,
       entries: new Set(),
       freeRects: [],
+      usedPixels: 0,
     };
     this.atlasPages.push(page);
     return page;
@@ -325,6 +375,7 @@ export class TextAtlas {
     page.cursorY = 0;
     page.rowHeight = 0;
     page.freeRects.length = 0;
+    page.usedPixels = 0;
     const context = page.canvas.getContext("2d");
     context?.clearRect(0, 0, this.width, this.height);
     for (const gpuPage of [...this.gpuPages]) {

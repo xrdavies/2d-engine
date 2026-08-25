@@ -89,4 +89,34 @@ describe("TextAtlas pages", () => {
     expect(atlas.getEntry("map-label")).toBeUndefined();
     expect(atlas.getEntry("hud-label")).toBeDefined();
   });
+
+  it("reports page occupancy, hit rate and evictions", () => {
+    vi.stubGlobal("OffscreenCanvas", FakeCanvas);
+    const atlas = new TextAtlas(8, 8, 1);
+    const layout = { width: 4, height: 4, lineHeight: 4, lines: [] };
+    const rasterizer = {
+      rasterize: () => ({
+        canvas: new FakeCanvas(4, 4),
+        width: 4,
+        height: 4,
+        layout,
+      }),
+    } as never;
+    const style = { font: "4px sans-serif" };
+    atlas.getOrCreateEntry("first", layout, style, rasterizer);
+    atlas.getOrCreateEntry("first", layout, style, rasterizer);
+    atlas.getOrCreateEntry("second", layout, style, rasterizer);
+
+    expect(atlas.stats()).toMatchObject({
+      pageCount: 1,
+      entryCount: 1,
+      usedPixels: 16,
+      capacityPixels: 64,
+      occupancy: 0.25,
+      hits: 1,
+      misses: 2,
+      hitRate: 1 / 3,
+      evictions: 1,
+    });
+  });
 });

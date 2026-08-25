@@ -121,6 +121,7 @@ export type {
   RasterizedText,
   Text2DOptions,
   TextAtlasEntry,
+  TextAtlasStats,
   TextCanvas,
   TextLayoutBackend,
   TextLayoutOptions,

@@ -1,4 +1,4 @@
-export type { TextAtlasEntry } from "./atlas.ts";
+export type { TextAtlasEntry, TextAtlasStats } from "./atlas.ts";
 export { TextAtlas } from "./atlas.ts";
 export type {
   PreparedText,
