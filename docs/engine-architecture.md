@@ -132,6 +132,8 @@ Modal / focused UI
 
 资源对象使用引擎句柄，底层 `GPUDevice` 通过受控的 debug/escape hatch 暴露，而不是让业务代码到处直接管理资源。
 
+设备丢失后，Engine 进入 `device-lost` 状态并停止帧循环。调用 `Engine.recreate()` 可重新创建 device 和 runtime；外部资源/Renderer 实例需要由上层按资源描述重新创建。
+
 ### 3.5 Renderer2D
 
 Renderer2D 是通用 2D 绘制层，不等同于 Sprite Renderer。它负责组织 render pass、相机、排序、裁剪和批处理，不负责加载资源、推进动画或排版文字。

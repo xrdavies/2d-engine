@@ -57,6 +57,7 @@ export class Engine {
   readonly diagnostics = new Diagnostics();
   readonly resources: GpuResourceManager;
   readonly input: InputSource | undefined;
+  private readonly createOptions: EngineOptions;
 
   private _status: EngineStatus = "idle";
   private readonly systems = new Set<EngineSystem>();
@@ -77,12 +78,14 @@ export class Engine {
     gpu: GpuContext,
     clock: FixedClock,
     inputEnabled: boolean,
+    createOptions: EngineOptions,
   ) {
     this.canvas = canvas;
     this.gpu = gpu;
     this.clock = clock;
     this.resources = new GpuResourceManager(gpu);
     this.input = inputEnabled ? new InputSource(canvas) : undefined;
+    this.createOptions = createOptions;
 
     window.addEventListener("resize", this.onResizeBound);
     document.addEventListener("visibilitychange", this.onVisibilityBound);
@@ -111,6 +114,7 @@ export class Engine {
         gpu,
         new FixedClock(options),
         options.input ?? true,
+        options,
       );
       if (options.autoStart) {
         engine.start();
@@ -193,10 +197,12 @@ export class Engine {
     this.start();
   }
 
-  recover(): never {
-    throw new Error(
-      "WebGPU device recovery requires recreating Engine so resources can be restored",
-    );
+  async recreate(): Promise<Engine> {
+    if (this._status !== "device-lost") {
+      throw new Error("Engine can only be recreated after device loss");
+    }
+    this.destroy();
+    return Engine.create(this.createOptions);
   }
 
   resize(): EngineViewport {
