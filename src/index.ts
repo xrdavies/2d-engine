@@ -95,6 +95,7 @@ export type {
   Camera2DOptions,
   Image2DOptions,
   Renderer2DOptions,
+  Renderer2DRenderOptions,
   SamplerSource,
   SpriteOptions,
   TexturedQuad,

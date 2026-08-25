@@ -50,6 +50,10 @@ export interface Renderer2DOptions {
   maxInstances?: number;
 }
 
+export interface Renderer2DRenderOptions {
+  scissor?: { x: number; y: number; width: number; height: number };
+}
+
 export function writeTexturedQuadInstance(
   target: Float32Array,
   index: number,
@@ -168,6 +172,7 @@ export class Renderer2D {
   render(
     items: readonly TexturedQuad[],
     camera: Camera2D,
+    options: Renderer2DRenderOptions = {},
   ): { batches: number; draws: number; visibleItems: number } {
     const visible = items.filter(
       (item) => item.visible && this.isVisible(item, camera),
@@ -210,6 +215,15 @@ export class Renderer2D {
       ],
     });
     pass.setPipeline(this.pipeline);
+    if (options.scissor) {
+      const { x, y, width, height } = options.scissor;
+      if (width < 0 || height < 0) {
+        throw new RangeError(
+          "Renderer scissor dimensions must be non-negative",
+        );
+      }
+      pass.setScissorRect(x, y, width, height);
+    }
     pass.setVertexBuffer(0, this.vertexBuffer);
     pass.setVertexBuffer(1, this.instanceBuffer);
     let offset = 0;

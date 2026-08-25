@@ -9,5 +9,5 @@ export type {
   TextureSource,
 } from "./quad.ts";
 export { Image2D, Sprite } from "./quad.ts";
-export type { Renderer2DOptions } from "./renderer.ts";
+export type { Renderer2DOptions, Renderer2DRenderOptions } from "./renderer.ts";
 export { Renderer2D } from "./renderer.ts";
