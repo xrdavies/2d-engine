@@ -93,6 +93,7 @@ describe("GPU resource core", () => {
     expect(fake.buffers[0]?.object.destroy).toHaveBeenCalledTimes(1);
     expect(() => first.resource).toThrow(/disposed/);
     expect(manager.size).toBe(0);
+    expect(() => manager.assertEmpty()).not.toThrow();
   });
 
   it("uploads buffers and textures through the device queue", () => {

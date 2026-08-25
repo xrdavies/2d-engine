@@ -306,6 +306,14 @@ export class GpuResourceManager {
     return { total: this.resources.size, byKind };
   }
 
+  assertEmpty(): void {
+    if (this.resources.size !== 0) {
+      throw new Error(
+        `GPU resource leak: ${this.resources.size} resource(s) remain`,
+      );
+    }
+  }
+
   get<T extends GpuResourceObject>(
     handle: GpuResourceHandle<T>,
   ): GpuResource<T> {
