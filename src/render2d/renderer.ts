@@ -52,6 +52,7 @@ export interface Renderer2DOptions {
 
 export interface Renderer2DRenderOptions {
   scissor?: { x: number; y: number; width: number; height: number };
+  staticItems?: boolean;
 }
 
 export function writeTexturedQuadInstance(
@@ -97,6 +98,10 @@ export class Renderer2D {
   private readonly viewCache = new WeakMap<GPUTexture, GPUTextureView>();
   private readonly bindGroups = new Map<string, GPUBindGroup>();
   private readonly textureIds = new WeakMap<object, number>();
+  private readonly staticSorted = new WeakMap<
+    readonly TexturedQuad[],
+    TexturedQuad[]
+  >();
   private nextTextureId = 1;
 
   constructor(gpu: GpuContext, options: Renderer2DOptions = {}) {
@@ -174,13 +179,15 @@ export class Renderer2D {
     camera: Camera2D,
     options: Renderer2DRenderOptions = {},
   ): { batches: number; draws: number; visibleItems: number } {
-    const visible = items.filter(
+    const sorted = options.staticItems
+      ? this.getStaticSorted(items)
+      : [...items].sort(
+          (left, right) =>
+            left.layer - right.layer ||
+            this.textureKey(left.texture) - this.textureKey(right.texture),
+        );
+    const visible = sorted.filter(
       (item) => item.visible && this.isVisible(item, camera),
-    );
-    visible.sort(
-      (left, right) =>
-        left.layer - right.layer ||
-        this.textureKey(left.texture) - this.textureKey(right.texture),
     );
     const batches: Batch[] = [];
     for (const item of visible) {
@@ -251,6 +258,10 @@ export class Renderer2D {
     };
   }
 
+  invalidateStatic(items: readonly TexturedQuad[]): void {
+    this.staticSorted.delete(items);
+  }
+
   dispose(): void {
     this.vertexBuffer.destroy();
     this.instanceBuffer.destroy();
@@ -265,6 +276,20 @@ export class Renderer2D {
       item.position.y + item.size.y >= bounds.top &&
       item.position.y - item.size.y <= bounds.bottom
     );
+  }
+
+  private getStaticSorted(
+    items: readonly TexturedQuad[],
+  ): readonly TexturedQuad[] {
+    const cached = this.staticSorted.get(items);
+    if (cached) return cached;
+    const sorted = [...items].sort(
+      (left, right) =>
+        left.layer - right.layer ||
+        this.textureKey(left.texture) - this.textureKey(right.texture),
+    );
+    this.staticSorted.set(items, sorted);
+    return sorted;
   }
 
   private getBindGroup(texture: GPUTexture, sampler: GPUSampler): GPUBindGroup {
