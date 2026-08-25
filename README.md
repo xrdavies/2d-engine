@@ -15,3 +15,5 @@
 
 按阶段执行的实现计划见
 [docs/implementation-plan.md](docs/implementation-plan.md)。
+
+公共 API 见 [docs/api.md](docs/api.md)。
