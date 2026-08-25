@@ -440,3 +440,5 @@ export class TextAtlas {
     );
   }
 }
+
+export const defaultTextAtlas = new TextAtlas();

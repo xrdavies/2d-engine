@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CanvasTextLayout,
+  defaultTextAtlas,
   Text2D,
   TextAtlas,
   type TextLayoutBackend,
@@ -82,5 +83,27 @@ describe("CanvasTextLayout", () => {
     const prepared = backend.prepare("hello   world", "10px sans-serif");
     const result = backend.layout(prepared, 60, 16);
     expect(result.lines.map((line) => line.text)).toEqual(["hello", "world"]);
+  });
+
+  it("shares the default atlas across text objects", () => {
+    const backend: TextLayoutBackend = {
+      prepare: (text, font, options = {}) => ({
+        text,
+        font,
+        options,
+        graphemes: [...text],
+        widths: [...text].map(() => 1),
+      }),
+      layout: (prepared) => ({
+        width: prepared.text.length,
+        height: 10,
+        lineHeight: 10,
+        lines: [],
+      }),
+    };
+    const first = new Text2D({ text: "a", font: "10px sans-serif" }, backend);
+    const second = new Text2D({ text: "b", font: "10px sans-serif" }, backend);
+    expect(first.atlas).toBe(defaultTextAtlas);
+    expect(second.atlas).toBe(defaultTextAtlas);
   });
 });

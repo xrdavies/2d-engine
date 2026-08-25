@@ -1,5 +1,5 @@
 import type { TexturedQuad, TextureSource } from "../render2d/quad.ts";
-import { TextAtlas } from "./atlas.ts";
+import { defaultTextAtlas, type TextAtlas } from "./atlas.ts";
 import {
   CanvasTextLayout,
   type PreparedText,
@@ -53,7 +53,7 @@ export class Text2D {
     this.lineHeight = options.lineHeight ?? 20;
     this.position = options.position ?? { x: 0, y: 0 };
     this.layoutOptions = options.layoutOptions ?? {};
-    this.atlas = options.atlas ?? new TextAtlas();
+    this.atlas = options.atlas ?? defaultTextAtlas;
     this.scene = options.scene ?? "global";
     this.layoutBackend =
       layoutBackend ?? new CanvasTextLayout(this.createMeasureContext());

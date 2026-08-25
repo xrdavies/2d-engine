@@ -132,6 +132,7 @@ export type {
 } from "./text2d/index.ts";
 export {
   CanvasTextLayout,
+  defaultTextAtlas,
   NumericTextAtlas,
   PretextTextLayout,
   Text2D,
