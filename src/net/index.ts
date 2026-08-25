@@ -1,4 +1,10 @@
 export type { HttpRequestOptions } from "./http.ts";
 export { HttpClient } from "./http.ts";
-export type { WebSocketFactory, WebSocketState } from "./websocket.ts";
-export { WebSocketTransport } from "./websocket.ts";
+export type {
+  MessageEnvelope,
+  MessageTransport,
+  WebSocketFactory,
+  WebSocketState,
+  WebSocketTransportOptions,
+} from "./websocket.ts";
+export { FakeTransport, WebSocketTransport } from "./websocket.ts";

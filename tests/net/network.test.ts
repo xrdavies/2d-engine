@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { HttpClient, WebSocketTransport } from "../../src/net/index.ts";
+import {
+  FakeTransport,
+  HttpClient,
+  WebSocketTransport,
+} from "../../src/net/index.ts";
 
 describe("HttpClient", () => {
   it("checks HTTP status before returning a response", async () => {
@@ -35,6 +39,7 @@ describe("HttpClient", () => {
     class FakeSocket extends EventTarget {
       sent: string | ArrayBuffer | Blob | undefined;
       readyState = 0;
+      binaryType = "blob";
 
       send(data: string | ArrayBuffer | Blob): void {
         this.sent = data;
@@ -49,6 +54,10 @@ describe("HttpClient", () => {
         this.readyState = 1;
         this.dispatchEvent(new Event("open"));
       }
+
+      message(data: unknown): void {
+        this.dispatchEvent(new MessageEvent("message", { data }));
+      }
     }
     let socket: FakeSocket | undefined;
     const transport = new WebSocketTransport("ws://test", {
@@ -62,6 +71,42 @@ describe("HttpClient", () => {
     await connecting;
     transport.send("hello");
     expect(socket?.sent).toBe("hello");
+    const envelopes: string[] = [];
+    transport.onEnvelope<{ value: number }>((envelope) =>
+      envelopes.push(`${envelope.type}:${envelope.payload.value}`),
+    );
+    socket?.message(
+      JSON.stringify({
+        id: "1",
+        type: "state",
+        payload: { value: 42 },
+        timestamp: 1,
+      }),
+    );
+    expect(envelopes).toEqual(["state:42"]);
     transport.dispose();
+  });
+
+  it("times out unopened sockets", async () => {
+    const transport = new WebSocketTransport("ws://test", {
+      connectTimeout: 1,
+      factory: () =>
+        Object.assign(new EventTarget(), {
+          binaryType: "blob",
+          close() {},
+          send() {},
+        }) as unknown as WebSocket,
+    });
+    await expect(transport.connect()).rejects.toThrow("timed out");
+  });
+
+  it("provides a fake with the same message transport API", () => {
+    const transport = new FakeTransport();
+    const received: string[] = [];
+    transport.onMessage((data) => received.push(String(data)));
+    transport.send("outgoing");
+    transport.receive("incoming");
+    expect(transport.sent).toEqual(["outgoing"]);
+    expect(received).toEqual(["incoming"]);
   });
 });

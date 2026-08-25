@@ -76,10 +76,13 @@ export {
 } from "./interaction/index.ts";
 export type {
   HttpRequestOptions,
+  MessageEnvelope,
+  MessageTransport,
   WebSocketFactory,
   WebSocketState,
+  WebSocketTransportOptions,
 } from "./net/index.ts";
-export { HttpClient, WebSocketTransport } from "./net/index.ts";
+export { FakeTransport, HttpClient, WebSocketTransport } from "./net/index.ts";
 export type {
   CoordinateElement,
   CoordinateMapper,
