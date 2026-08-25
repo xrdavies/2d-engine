@@ -6,7 +6,12 @@ export {
 } from "./animation/index.ts";
 export type { AssetLoadOptions } from "./assets/index.ts";
 export { AssetManager } from "./assets/index.ts";
-export type { AudioBus, PlayAudioOptions } from "./audio/index.ts";
+export type {
+  AudioBus,
+  PcmStream,
+  PcmStreamOptions,
+  PlayAudioOptions,
+} from "./audio/index.ts";
 export { AudioManager } from "./audio/index.ts";
 export type { ClockOptions, ClockStep } from "./core/clock.ts";
 export { FixedClock } from "./core/clock.ts";

@@ -33,6 +33,8 @@ describe("AudioManager", () => {
       createGain: () => new FakeNode(),
       createBufferSource: () => new FakeNode(),
       createStereoPanner: () => new FakeNode(),
+      createScriptProcessor: () =>
+        new FakeNode() as unknown as ScriptProcessorNode,
       suspend: vi.fn(async function (this: { state: string }) {
         this.state = "suspended";
       }),
@@ -55,6 +57,11 @@ describe("AudioManager", () => {
     expect(music.gain.gain.value).toBe(0.4);
     audio.stopAll();
     expect(audio.activeSourceCount).toBe(0);
+    const stream = audio.createPcmStream({ bus: "music", capacity: 1_024 });
+    stream.push(0.25, -0.25);
+    expect(stream.queuedSamples).toBe(1);
+    stream.stop();
+    expect(stream.queuedSamples).toBe(0);
     await audio.pause();
     expect(context.state).toBe("suspended");
     await audio.resume();
