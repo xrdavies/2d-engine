@@ -16,6 +16,7 @@ export interface TextAtlasEntry {
   y: number;
   uv: TextureRegion;
   lastUsed: number;
+  references: number;
 }
 
 export interface TextAtlasStats {
@@ -136,7 +137,11 @@ export class TextAtlas {
       return existing;
     }
     this.misses += 1;
-    while (this.entries.size >= this.maxEntries) this.evictLru();
+    while (this.entries.size >= this.maxEntries) {
+      if (this.evictLru().length === 0) {
+        throw new Error("Text atlas capacity is full of retained entries");
+      }
+    }
     const value = this.getOrCreate(key, layout, style, rasterizer);
     if (value.width > this.width || value.height > this.height) {
       throw new RangeError("Text run is larger than an atlas page");
@@ -178,6 +183,7 @@ export class TextAtlas {
         height: value.height / this.height,
       },
       lastUsed: ++this.accessCounter,
+      references: 0,
     };
     if (placement.freeIndex !== undefined) {
       const free = page.freeRects.splice(placement.freeIndex, 1)[0];
@@ -194,9 +200,24 @@ export class TextAtlas {
     return entry;
   }
 
-  remove(key: string): boolean {
+  retain(key: string): boolean {
     const entry = this.entries.get(key);
     if (!entry) return false;
+    entry.references += 1;
+    entry.lastUsed = ++this.accessCounter;
+    return true;
+  }
+
+  release(key: string): boolean {
+    const entry = this.entries.get(key);
+    if (!entry || entry.references === 0) return false;
+    entry.references -= 1;
+    return true;
+  }
+
+  remove(key: string, force = false): boolean {
+    const entry = this.entries.get(key);
+    if (!entry || (!force && entry.references > 0)) return false;
     this.entries.delete(key);
     this.rasterized.delete(key);
     const page = this.atlasPages[entry.pageIndex];
@@ -218,7 +239,7 @@ export class TextAtlas {
     const keys = [...this.entries.values()]
       .filter((entry) => entry.scene === scene)
       .map((entry) => entry.key);
-    for (const key of keys) this.remove(key);
+    for (const key of keys) this.remove(key, true);
     return keys.length;
   }
 
@@ -227,6 +248,7 @@ export class TextAtlas {
     for (let index = 0; index < count; index += 1) {
       let oldest: TextAtlasEntry | undefined;
       for (const entry of this.entries.values()) {
+        if (entry.references > 0) continue;
         if (!oldest || entry.lastUsed < oldest.lastUsed) oldest = entry;
       }
       if (!oldest) break;

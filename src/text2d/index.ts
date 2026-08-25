@@ -21,5 +21,5 @@ export type {
   TextRasterStyle,
 } from "./rasterizer.ts";
 export { TextRasterizer } from "./rasterizer.ts";
-export type { Text2DOptions } from "./text.ts";
+export type { Text2DOptions, TextQuad } from "./text.ts";
 export { Text2D } from "./text.ts";

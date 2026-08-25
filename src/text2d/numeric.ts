@@ -1,7 +1,6 @@
-import type { TexturedQuad } from "../render2d/quad.ts";
 import { TextAtlas } from "./atlas.ts";
 import type { TextLayoutBackend } from "./layout.ts";
-import { Text2D } from "./text.ts";
+import { Text2D, type TextQuad } from "./text.ts";
 
 export interface NumericTextAtlasOptions {
   font: string;
@@ -44,12 +43,12 @@ export class NumericTextAtlas {
     value: number | string,
     device: GPUDevice,
     options: NumericTextOptions = {},
-  ): TexturedQuad[] {
+  ): TextQuad[] {
     this.prepare();
     const origin = options.position ?? { x: 0, y: 0 };
     const scale = options.scale ?? 1;
     const spacing = options.spacing ?? 0;
-    const items: TexturedQuad[] = [];
+    const items: TextQuad[] = [];
     let x = origin.x;
     for (const character of String(value)) {
       if (character === " ") {

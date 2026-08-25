@@ -119,4 +119,28 @@ describe("TextAtlas pages", () => {
       evictions: 1,
     });
   });
+
+  it("does not evict retained entries", () => {
+    vi.stubGlobal("OffscreenCanvas", FakeCanvas);
+    const atlas = new TextAtlas(8, 8, 1);
+    const layout = { width: 4, height: 4, lineHeight: 4, lines: [] };
+    const rasterizer = {
+      rasterize: () => ({
+        canvas: new FakeCanvas(4, 4),
+        width: 4,
+        height: 4,
+        layout,
+      }),
+    } as never;
+    const style = { font: "4px sans-serif" };
+    atlas.getOrCreateEntry("retained", layout, style, rasterizer);
+    atlas.retain("retained");
+
+    expect(() =>
+      atlas.getOrCreateEntry("new", layout, style, rasterizer),
+    ).toThrow("retained entries");
+    expect(atlas.remove("retained")).toBe(false);
+    expect(atlas.release("retained")).toBe(true);
+    expect(atlas.remove("retained")).toBe(true);
+  });
 });

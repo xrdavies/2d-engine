@@ -127,6 +127,7 @@ export type {
   TextLayoutOptions,
   TextLayoutResult,
   TextLine,
+  TextQuad,
   TextRasterStyle,
 } from "./text2d/index.ts";
 export {

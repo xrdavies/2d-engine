@@ -23,6 +23,10 @@ export interface Text2DOptions extends TextRasterStyle {
   scene?: string;
 }
 
+export interface TextQuad extends TexturedQuad {
+  dispose(): void;
+}
+
 export class Text2D {
   text: string;
   font: string;
@@ -99,10 +103,15 @@ export class Text2D {
     return this.atlas.createTexture(device, entry.pageIndex);
   }
 
-  toQuad(texture: TextureSource): TexturedQuad {
+  toQuad(texture: TextureSource): TextQuad {
     const rasterized = this.rasterize();
     const entry = this.atlas.getEntry(this.atlasKey);
     if (!entry) throw new Error("Text run is missing from the atlas");
+    const retainedKey = this.atlasKey;
+    if (!this.atlas.retain(retainedKey)) {
+      throw new Error("Text run is missing from the atlas");
+    }
+    let disposed = false;
     return {
       texture,
       position: this.position,
@@ -113,6 +122,11 @@ export class Text2D {
       color: [1, 1, 1, 1],
       layer: 0,
       visible: true,
+      dispose: () => {
+        if (disposed) return;
+        disposed = true;
+        this.atlas.release(retainedKey);
+      },
     };
   }
 

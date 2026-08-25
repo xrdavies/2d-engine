@@ -60,5 +60,6 @@ describe("NumericTextAtlas", () => {
     expect(second).toHaveLength(3);
     expect(numeric.glyphCount).toBe(3);
     expect(numeric.atlas.size).toBe(3);
+    for (const item of [...first, ...second]) item.dispose();
   });
 });
