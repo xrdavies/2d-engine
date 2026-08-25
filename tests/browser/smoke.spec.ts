@@ -29,3 +29,23 @@ test("sprite example renders or reports unavailable WebGPU", async ({
     await expect(page.locator("#stats")).toHaveText(/batches/);
   }
 });
+
+test("text and tilemap examples load", async ({ page }) => {
+  await page.goto("/examples/text/");
+  await expect(page.locator("#status")).toHaveText(/line\(s\)/);
+  await page.goto("/examples/tilemap/");
+  await expect(page.locator("#status")).toHaveText(/tilemap/);
+  await page.goto("/examples/benchmark/");
+  await expect(page.locator("#status")).toHaveText(
+    /Benchmark (completed|harness ready)/,
+  );
+});
+
+test("animation and audio examples load", async ({ page }) => {
+  await page.goto("/examples/animation/");
+  await expect(page.locator("#status")).toHaveText("AnimationPlayer running");
+  await page.goto("/examples/audio/");
+  await expect(page.locator("#status")).toHaveText(
+    /Audio is locked|Audio context/,
+  );
+});

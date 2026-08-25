@@ -369,6 +369,18 @@ HTTP 适合启动配置、登录、资源元数据、存档和非实时命令；
 
 UI 扩展可以选择 DOM/CSS 或引擎渲染，但不应改变核心 Input/Interaction API。
 
+### 3.15 Diagnostics
+
+Diagnostics 只记录引擎运行时指标，不决定性能策略：
+
+- frame、delta、CPU frame time
+- batch 数量和 draw 数量
+- 可见对象数量
+- GPU timestamp（设备支持时由上层接入）
+- 资源统计和错误标签
+
+统计结果可供示例、开发工具和性能回归使用，不进入游戏业务状态。
+
 ## 4. 技术选型
 
 ### 必选
@@ -421,6 +433,7 @@ src/
   spatial/
   tilemap/
   net/
+  ui-bridge/
   debug/
 
 examples/

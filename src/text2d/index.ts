@@ -1,0 +1,17 @@
+export { TextAtlas } from "./atlas.ts";
+export type {
+  PreparedText,
+  TextLayoutBackend,
+  TextLayoutOptions,
+  TextLayoutResult,
+  TextLine,
+} from "./layout.ts";
+export { CanvasTextLayout } from "./layout.ts";
+export type {
+  RasterizedText,
+  TextCanvas,
+  TextRasterStyle,
+} from "./rasterizer.ts";
+export { TextRasterizer } from "./rasterizer.ts";
+export type { Text2DOptions } from "./text.ts";
+export { Text2D } from "./text.ts";
