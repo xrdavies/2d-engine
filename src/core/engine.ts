@@ -267,11 +267,11 @@ export class Engine {
     for (let index = 0; index < step.steps; index += 1) {
       this.world.beginFixedStep();
       for (const system of this.systems) {
-        system.update?.(this.clock.fixedDelta);
+        this.invokeSystem(() => system.update?.(this.clock.fixedDelta));
       }
     }
     for (const system of this.systems) {
-      system.render?.(step.alpha);
+      this.invokeSystem(() => system.render?.(step.alpha));
     }
     this.diagnostics.endFrame(timestamp, step.delta);
 
@@ -301,6 +301,17 @@ export class Engine {
   ): void {
     for (const handler of this.handlers.get(event) ?? []) {
       (handler as EventHandler<EngineEventMap[K]>)(payload);
+    }
+  }
+
+  private invokeSystem(callback: () => void): void {
+    try {
+      callback();
+    } catch (cause) {
+      this.emit("error", {
+        error: cause instanceof Error ? cause : new Error(String(cause)),
+        source: "runtime",
+      });
     }
   }
 

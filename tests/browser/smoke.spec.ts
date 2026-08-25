@@ -85,6 +85,42 @@ test("canvas backing size remains stable across high-DPR resize", async ({
   await context.close();
 });
 
+test("runtime system errors do not stop later frames", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-webgpu");
+  await page.goto("/examples/triangle/");
+  const result = await page.evaluate(async () => {
+    const { Engine } = await import("../../src/index.ts");
+    const canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+    document.body.appendChild(canvas);
+    const engine = await Engine.create({ canvas });
+    let errors = 0;
+    let renders = 0;
+    engine.on("error", ({ source }) => {
+      if (source === "runtime") errors += 1;
+    });
+    engine.addSystem({
+      update: () => {
+        throw new Error("expected");
+      },
+    });
+    engine.addSystem({
+      render: () => {
+        renders += 1;
+      },
+    });
+    engine.start();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    engine.destroy();
+    return { errors, renders };
+  });
+  expect(result.errors).toBeGreaterThan(0);
+  expect(result.renders).toBeGreaterThan(1);
+});
+
 test("animation and audio examples load", async ({ page }) => {
   await page.goto("/examples/animation/");
   await expect(page.locator("#status")).toHaveText("AnimationPlayer running");
