@@ -49,6 +49,9 @@ export class Transform2D {
   private readonly _scale: Vector2;
   private readonly _anchor: Vector2;
   private _rotation: number;
+  private _previousPosition: Vector2;
+  private _previousScale: Vector2;
+  private _previousRotation: number;
   private _parent: Transform2D | undefined;
   private readonly _children = new Set<Transform2D>();
   private _localMatrix = identity();
@@ -78,6 +81,9 @@ export class Transform2D {
       y: anchor?.y ?? 0,
     };
     this._rotation = options.rotation ?? 0;
+    this._previousPosition = copyVector(this._position);
+    this._previousScale = copyVector(this._scale);
+    this._previousRotation = this._rotation;
     this.captureSnapshot();
   }
 
@@ -174,6 +180,45 @@ export class Transform2D {
     this._position.y = y;
     this.markDirty();
     return this;
+  }
+
+  capturePrevious(): this {
+    this._previousPosition = copyVector(this._position);
+    this._previousScale = copyVector(this._scale);
+    this._previousRotation = this._rotation;
+    return this;
+  }
+
+  interpolatedPosition(alpha: number): Vector2 {
+    const amount = Math.max(0, Math.min(1, alpha));
+    return {
+      x:
+        this._previousPosition.x +
+        (this._position.x - this._previousPosition.x) * amount,
+      y:
+        this._previousPosition.y +
+        (this._position.y - this._previousPosition.y) * amount,
+    };
+  }
+
+  interpolatedScale(alpha: number): Vector2 {
+    const amount = Math.max(0, Math.min(1, alpha));
+    return {
+      x:
+        this._previousScale.x +
+        (this._scale.x - this._previousScale.x) * amount,
+      y:
+        this._previousScale.y +
+        (this._scale.y - this._previousScale.y) * amount,
+    };
+  }
+
+  interpolatedRotation(alpha: number): number {
+    const amount = Math.max(0, Math.min(1, alpha));
+    return (
+      this._previousRotation +
+      (this._rotation - this._previousRotation) * amount
+    );
   }
 
   setLocalPosition(x: number, y: number): this {

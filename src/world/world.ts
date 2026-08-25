@@ -70,6 +70,29 @@ export class World {
     }
   }
 
+  beginFixedStep(): void {
+    for (const transform of this.transforms.values())
+      transform.capturePrevious();
+  }
+
+  extractInterpolatedRenderItems<T>(
+    alpha: number,
+    extractor: (
+      entity: EntityId,
+      transform: Transform2D,
+      alpha: number,
+    ) => T | undefined,
+  ): T[] {
+    this.updateTransforms();
+    const items: T[] = [];
+    for (const [entity, transform] of this.transforms) {
+      if (!this.entities.isAlive(entity)) continue;
+      const item = extractor(entity, transform, alpha);
+      if (item !== undefined) items.push(item);
+    }
+    return items;
+  }
+
   extractRenderItems<T>(
     extractor: (entity: EntityId, transform: Transform2D) => T | undefined,
   ): T[] {

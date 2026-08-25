@@ -65,4 +65,20 @@ describe("world", () => {
     world.destroyEntity(first);
     expect(world.extractRenderItems((entity) => entity)).toEqual([second]);
   });
+
+  it("interpolates transform state between fixed steps", () => {
+    const world = new World();
+    const entity = world.createEntity();
+    const transform = world.addTransform(
+      entity,
+      new Transform2D({ position: { x: 0, y: 0 } }),
+    );
+    world.beginFixedStep();
+    transform.setPosition(10, 20);
+    const positions = world.extractInterpolatedRenderItems(
+      0.5,
+      (_id, value, alpha) => value.interpolatedPosition(alpha),
+    );
+    expect(positions).toEqual([{ x: 5, y: 10 }]);
+  });
 });

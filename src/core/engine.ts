@@ -257,6 +257,7 @@ export class Engine {
     this.diagnostics.recordResources(this.resources.stats().total);
 
     for (let index = 0; index < step.steps; index += 1) {
+      this.world.beginFixedStep();
       for (const system of this.systems) {
         system.update?.(this.clock.fixedDelta);
       }
