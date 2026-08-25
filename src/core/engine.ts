@@ -1,11 +1,20 @@
+import { Diagnostics } from "../debug/diagnostics.ts";
 import {
   createGpuContext,
   type GpuContext,
   type GpuOptions,
 } from "../gpu/device.ts";
+import { GpuResourceManager } from "../gpu/resources.ts";
+import { InputSource } from "../input/source.ts";
+import { World } from "../world/world.ts";
 import { type ClockOptions, FixedClock } from "./clock.ts";
 
-export type EngineStatus = "idle" | "running" | "paused" | "destroyed";
+export type EngineStatus =
+  | "idle"
+  | "running"
+  | "paused"
+  | "device-lost"
+  | "destroyed";
 
 export interface EngineSystem {
   update?(delta: number): void;
@@ -29,6 +38,7 @@ export interface EngineErrorEvent {
 export interface EngineOptions extends GpuOptions, ClockOptions {
   canvas: HTMLCanvasElement;
   autoStart?: boolean;
+  input?: boolean;
 }
 
 export interface EngineEventMap {
@@ -43,6 +53,10 @@ export class Engine {
   readonly canvas: HTMLCanvasElement;
   readonly gpu: GpuContext;
   readonly clock: FixedClock;
+  readonly world = new World();
+  readonly diagnostics = new Diagnostics();
+  readonly resources: GpuResourceManager;
+  readonly input: InputSource | undefined;
 
   private _status: EngineStatus = "idle";
   private readonly systems = new Set<EngineSystem>();
@@ -62,10 +76,13 @@ export class Engine {
     canvas: HTMLCanvasElement,
     gpu: GpuContext,
     clock: FixedClock,
+    inputEnabled: boolean,
   ) {
     this.canvas = canvas;
     this.gpu = gpu;
     this.clock = clock;
+    this.resources = new GpuResourceManager(gpu);
+    this.input = inputEnabled ? new InputSource(canvas) : undefined;
 
     window.addEventListener("resize", this.onResizeBound);
     document.addEventListener("visibilitychange", this.onVisibilityBound);
@@ -79,6 +96,8 @@ export class Engine {
     });
     void gpu.device.lost.then((info) => {
       if (this._status !== "destroyed") {
+        this.cancelFrame();
+        this._status = "device-lost";
         this.emit("deviceLost", info);
       }
     });
@@ -87,7 +106,12 @@ export class Engine {
   static async create(options: EngineOptions): Promise<Engine> {
     try {
       const gpu = await createGpuContext(options);
-      const engine = new Engine(options.canvas, gpu, new FixedClock(options));
+      const engine = new Engine(
+        options.canvas,
+        gpu,
+        new FixedClock(options),
+        options.input ?? true,
+      );
       if (options.autoStart) {
         engine.start();
       }
@@ -169,6 +193,12 @@ export class Engine {
     this.start();
   }
 
+  recover(): never {
+    throw new Error(
+      "WebGPU device recovery requires recreating Engine so resources can be restored",
+    );
+  }
+
   resize(): EngineViewport {
     this.assertUsable();
     const dpr = window.devicePixelRatio || 1;
@@ -202,6 +232,8 @@ export class Engine {
     for (const system of this.systems) {
       system.dispose?.();
     }
+    this.input?.dispose();
+    this.resources.disposeAll();
     this.systems.clear();
     this.gpu.destroy();
     this._status = "destroyed";
@@ -215,6 +247,7 @@ export class Engine {
     const previous = this.lastTimestamp ?? timestamp;
     this.lastTimestamp = timestamp;
     const step = this.clock.advance((timestamp - previous) / 1000);
+    this.diagnostics.beginFrame(timestamp);
 
     for (let index = 0; index < step.steps; index += 1) {
       for (const system of this.systems) {
@@ -224,6 +257,7 @@ export class Engine {
     for (const system of this.systems) {
       system.render?.(step.alpha);
     }
+    this.diagnostics.endFrame(timestamp, step.delta);
 
     this.frameHandle = requestAnimationFrame(this.frame);
   };
