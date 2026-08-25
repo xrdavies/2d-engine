@@ -71,4 +71,16 @@ describe("CanvasTextLayout", () => {
     expect(first).toBe(second);
     expect(atlas.size).toBe(1);
   });
+
+  it("collapses whitespace and prefers word boundaries", () => {
+    const context = {
+      font: "",
+      measureText: (text: string) =>
+        ({ width: text.length * 10 }) as TextMetrics,
+    };
+    const backend = new CanvasTextLayout(context);
+    const prepared = backend.prepare("hello   world", "10px sans-serif");
+    const result = backend.layout(prepared, 60, 16);
+    expect(result.lines.map((line) => line.text)).toEqual(["hello", "world"]);
+  });
 });

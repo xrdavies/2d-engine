@@ -1,5 +1,6 @@
 export interface TextLayoutOptions {
   whiteSpace?: "normal" | "pre-wrap";
+  wordBreak?: "normal" | "keep-all";
   letterSpacing?: number;
 }
 
@@ -63,7 +64,11 @@ export class CanvasTextLayout implements TextLayoutBackend {
     options: TextLayoutOptions = {},
   ): PreparedText {
     this.context.font = font;
-    const graphemes = segment(text);
+    const normalized =
+      options.whiteSpace === "pre-wrap"
+        ? text
+        : text.replace(/[ \t\r\f\v]+/g, " ");
+    const graphemes = segment(normalized);
     const spacing = options.letterSpacing ?? 0;
     const widths = graphemes.map(
       (value) => this.context.measureText(value).width + spacing,
@@ -87,16 +92,36 @@ export class CanvasTextLayout implements TextLayoutBackend {
       start = end;
       width = 0;
     };
-    for (let index = 0; index < prepared.graphemes.length; index += 1) {
+    let lastBreak = -1;
+    let index = 0;
+    while (index < prepared.graphemes.length) {
       const value = prepared.graphemes[index] as string;
       const valueWidth = prepared.widths[index] as number;
       if (value === "\n") {
         pushLine(index);
         start = index + 1;
+        lastBreak = -1;
+        index += 1;
         continue;
       }
-      if (width > 0 && width + valueWidth > maxWidth) pushLine(index);
+      if (width > 0 && width + valueWidth > maxWidth) {
+        if (prepared.options.wordBreak !== "keep-all" && lastBreak >= start) {
+          pushLine(lastBreak);
+          start = lastBreak + 1;
+          width = 0;
+          lastBreak = -1;
+          index = start;
+          continue;
+        }
+        pushLine(index);
+        start = index;
+        width = 0;
+        lastBreak = -1;
+        continue;
+      }
       width += valueWidth;
+      if (value === " ") lastBreak = index;
+      index += 1;
     }
     if (start < prepared.graphemes.length || lines.length === 0)
       pushLine(prepared.graphemes.length);
