@@ -9,6 +9,8 @@ export class UIBridge {
   readonly root: HTMLElement;
   private readonly mapCoordinates;
   private captured = false;
+  private readonly resizeObserver?: ResizeObserver;
+  private readonly onWindowChange = (): void => this.sync();
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -19,7 +21,6 @@ export class UIBridge {
     if (!this.root.parentElement) {
       this.root.dataset.engineUi = "true";
       this.root.style.position = "absolute";
-      this.root.style.inset = "0";
       this.root.style.pointerEvents = "none";
       canvas.parentElement?.appendChild(this.root);
     }
@@ -30,12 +31,21 @@ export class UIBridge {
         : undefined,
     );
     this.sync();
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.sync());
+      this.resizeObserver.observe(canvas);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", this.onWindowChange);
+      window.addEventListener("scroll", this.onWindowChange, true);
+    }
   }
 
   sync(): void {
     const rect = this.canvas.getBoundingClientRect();
-    this.root.style.left = `${rect.left}px`;
-    this.root.style.top = `${rect.top}px`;
+    const offsetRect = this.root.offsetParent?.getBoundingClientRect();
+    this.root.style.left = `${rect.left - (offsetRect?.left ?? 0)}px`;
+    this.root.style.top = `${rect.top - (offsetRect?.top ?? 0)}px`;
     this.root.style.width = `${rect.width}px`;
     this.root.style.height = `${rect.height}px`;
   }
@@ -71,6 +81,11 @@ export class UIBridge {
   }
 
   dispose(): void {
+    this.resizeObserver?.disconnect();
+    if (typeof window !== "undefined") {
+      window.removeEventListener("resize", this.onWindowChange);
+      window.removeEventListener("scroll", this.onWindowChange, true);
+    }
     if (this.root.dataset.engineUi === "true") this.root.remove();
   }
 

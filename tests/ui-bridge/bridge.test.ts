@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Camera2D } from "../../src/render2d/index.ts";
 import { UIBridge } from "../../src/ui-bridge/index.ts";
 
@@ -50,6 +50,17 @@ describe("UIBridge", () => {
   });
 
   it("resyncs DOM size and preserves input capture", () => {
+    let resize: (() => void) | undefined;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          resize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
     const rect = { left: 10, top: 20, width: 400, height: 300 };
     const { canvas, root } = elements(rect);
     const bridge = new UIBridge(canvas, root);
@@ -62,7 +73,7 @@ describe("UIBridge", () => {
     });
 
     Object.assign(rect, { left: 30, top: 40, width: 640, height: 360 });
-    bridge.sync();
+    resize?.();
     bridge.setInputCaptured(true);
 
     expect(root.style).toMatchObject({
@@ -79,3 +90,5 @@ describe("UIBridge", () => {
     expect(bridge.inputCaptured).toBe(false);
   });
 });
+
+afterEach(() => vi.unstubAllGlobals());
