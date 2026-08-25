@@ -142,4 +142,49 @@ describe("Spatial and Tilemap", () => {
     expect(runtime.getTile("ground", 0, 0)).toBe(1);
     expect(runtime.tileToWorld(0, 1)).toEqual({ x: 16, y: 16 });
   });
+
+  it("maps Tiled zlib to deflate and rejects zstd explicitly", async () => {
+    const original = globalThis.DecompressionStream;
+    const formats: string[] = [];
+    class FakeDecompressionStream extends TransformStream {
+      constructor(format: string) {
+        formats.push(format);
+        super();
+      }
+    }
+    Object.assign(globalThis, { DecompressionStream: FakeDecompressionStream });
+    const encoded = btoa(
+      new Uint8Array(new Uint32Array([1]).buffer).reduce(
+        (value, byte) => value + String.fromCharCode(byte),
+        "",
+      ),
+    );
+    const map = (compression: string) => ({
+      type: "map",
+      width: 1,
+      height: 1,
+      tilewidth: 32,
+      tileheight: 32,
+      layers: [
+        {
+          id: 1,
+          name: "ground",
+          type: "tilelayer",
+          width: 1,
+          height: 1,
+          data: encoded,
+          encoding: "base64",
+          compression,
+        },
+      ],
+      tilesets: [],
+    });
+
+    await importTiledMapAsync(map("zlib"));
+    expect(formats).toEqual(["deflate"]);
+    await expect(importTiledMapAsync(map("zstd"))).rejects.toThrow(
+      "Zstd-compressed tile data is not supported",
+    );
+    Object.assign(globalThis, { DecompressionStream: original });
+  });
 });

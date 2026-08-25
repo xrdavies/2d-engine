@@ -160,13 +160,20 @@ async function decodeTileData(
   const bytes = Uint8Array.from(atob(encoded), (character) =>
     character.charCodeAt(0),
   );
+  if (compression === "zstd") {
+    throw new Error(
+      "Zstd-compressed tile data is not supported at runtime; convert it to zlib or gzip during the build",
+    );
+  }
+  const format = compression === "zlib" ? "deflate" : compression;
+  if (format && format !== "gzip" && format !== "deflate") {
+    throw new Error(`Unsupported tile data compression: ${compression}`);
+  }
   const source = compression
     ? await new Response(
         new Blob([bytes])
           .stream()
-          .pipeThrough(
-            new DecompressionStream(compression as "gzip" | "deflate"),
-          ),
+          .pipeThrough(new DecompressionStream(format as "gzip" | "deflate")),
       ).arrayBuffer()
     : bytes.buffer;
   const values = new Uint32Array(source);
