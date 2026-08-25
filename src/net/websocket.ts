@@ -37,6 +37,7 @@ export class WebSocketTransport implements MessageTransport {
   private readonly listeners = new Set<(data: string | ArrayBuffer) => void>();
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private manuallyClosed = false;
+  private connecting: Promise<void> | undefined;
 
   constructor(
     readonly url: string,
@@ -45,6 +46,7 @@ export class WebSocketTransport implements MessageTransport {
 
   async connect(): Promise<void> {
     if (this.state === "open") return;
+    if (this.connecting) return this.connecting;
     this.manuallyClosed = false;
     this.state = "connecting";
     const factory =
@@ -53,7 +55,7 @@ export class WebSocketTransport implements MessageTransport {
     const socket = factory(this.url, this.options.protocols);
     socket.binaryType = "arraybuffer";
     this.socket = socket;
-    await new Promise<void>((resolve, reject) => {
+    const connecting = new Promise<void>((resolve, reject) => {
       let settled = false;
       const timeout = setTimeout(() => {
         if (settled) return;
@@ -84,13 +86,22 @@ export class WebSocketTransport implements MessageTransport {
         },
         { once: true },
       );
-      socket.addEventListener("message", (event) => void this.emit(event.data));
+      socket.addEventListener("message", (event) => {
+        if (this.socket === socket) void this.emit(event.data);
+      });
       socket.addEventListener("close", () => {
         clearTimeout(timeout);
+        if (this.socket !== socket) return;
         this.state = "closed";
         this.scheduleReconnect();
       });
     });
+    this.connecting = connecting;
+    try {
+      await connecting;
+    } finally {
+      if (this.connecting === connecting) this.connecting = undefined;
+    }
   }
 
   send(data: string | ArrayBuffer | Blob): void {

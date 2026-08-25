@@ -124,4 +124,31 @@ describe("HttpClient", () => {
     expect(transport.sent).toEqual(["outgoing"]);
     expect(received).toEqual(["incoming"]);
   });
+
+  it("reuses an in-flight connection", async () => {
+    class PendingSocket extends EventTarget {
+      binaryType = "blob";
+      close() {}
+      send() {}
+      open(): void {
+        this.dispatchEvent(new Event("open"));
+      }
+    }
+    let socket: PendingSocket | undefined;
+    let created = 0;
+    const transport = new WebSocketTransport("ws://test", {
+      factory: () => {
+        created += 1;
+        socket = new PendingSocket();
+        return socket as unknown as WebSocket;
+      },
+    });
+
+    const first = transport.connect();
+    const second = transport.connect();
+    socket?.open();
+    await Promise.all([first, second]);
+    expect(created).toBe(1);
+    transport.dispose();
+  });
 });
