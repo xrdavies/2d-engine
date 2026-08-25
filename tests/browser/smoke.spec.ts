@@ -68,6 +68,7 @@ test("text and tilemap examples load", async ({ page }, testInfo) => {
   );
   if (testInfo.project.name === "chromium-webgpu") {
     await expect(page.locator("#result")).toContainText('"passed": true');
+    await expect(page.locator("#result")).toContainText('"gpuTicks":');
   }
 });
 

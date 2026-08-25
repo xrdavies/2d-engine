@@ -1,4 +1,5 @@
 import type { GpuContext } from "../gpu/device.ts";
+import type { GpuTimestampQuery } from "../gpu/timing.ts";
 import type { Camera2D } from "./camera.ts";
 import { type TexturedQuad, unwrapSampler, unwrapTexture } from "./quad.ts";
 
@@ -60,6 +61,7 @@ export interface Renderer2DRenderOptions {
   clearColor?: GPUColor;
   loadOp?: GPULoadOp;
   storeOp?: GPUStoreOp;
+  timing?: GpuTimestampQuery;
 }
 
 export function writeTexturedQuadInstance(
@@ -221,6 +223,7 @@ export class Renderer2D {
       this.replaceInstanceBuffer(visible.length);
     }
     const encoder = this.device.createCommandEncoder({ label: "renderer2d" });
+    options.timing?.begin(encoder);
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
@@ -261,6 +264,7 @@ export class Renderer2D {
       pass.draw(6, batch.items.length, 0, batchOffset / 64);
     }
     pass.end();
+    options.timing?.end(encoder);
     this.device.queue.submit([encoder.finish()]);
     return {
       batches: batches.length,

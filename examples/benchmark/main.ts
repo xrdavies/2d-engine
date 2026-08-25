@@ -3,6 +3,7 @@ import {
   Camera2D,
   checkBenchmarkBaseline,
   Engine,
+  GpuTimestampQuery,
   Image2D,
   Renderer2D,
 } from "../../src/index.ts";
@@ -17,7 +18,12 @@ try {
   canvas.width = 640;
   canvas.height = 360;
   document.body.appendChild(canvas);
-  const engine = await Engine.create({ canvas });
+  const adapter = await navigator.gpu.requestAdapter();
+  const supportsTiming = adapter?.features.has("timestamp-query") ?? false;
+  const engine = await Engine.create({
+    canvas,
+    requiredFeatures: supportsTiming ? ["timestamp-query"] : [],
+  });
   const texture = engine.gpu.device.createTexture({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: "rgba8unorm",
@@ -35,6 +41,7 @@ try {
     viewportHeight: 360,
   });
   const renderer = new Renderer2D(engine.gpu);
+  const timing = new GpuTimestampQuery(engine.gpu);
   const results = [];
   for (const count of [1_000, 5_000, 10_000]) {
     const items = Array.from(
@@ -47,11 +54,14 @@ try {
         }),
     );
     const start = performance.now();
-    const stats = renderer.render(items, camera);
+    const stats = renderer.render(items, camera, { timing });
+    const cpuMs = performance.now() - start;
+    const gpuTicks = await timing.readTicks();
     results.push({
       objects: count,
       ...stats,
-      cpuMs: performance.now() - start,
+      cpuMs,
+      gpuTicks: gpuTicks === null ? null : Number(gpuTicks),
     });
   }
   const check = checkBenchmarkBaseline(
@@ -62,6 +72,7 @@ try {
     ? "Benchmark completed"
     : "Benchmark regression";
   result.textContent = JSON.stringify({ samples: results, check }, null, 2);
+  timing.dispose();
 } catch (error) {
   status.textContent = "Benchmark harness ready";
   result.textContent = error instanceof Error ? error.message : String(error);
