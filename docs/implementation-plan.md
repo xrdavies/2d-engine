@@ -10,7 +10,7 @@
 - TilemapRuntime 支持正交、等距、hexagonal/staggered 基础投影；异步 importer 支持外部 tileset、CSV/base64 和 gzip/deflate tile data。
 - GPU timestamp-query 通过可选 `GpuTimestampQuery` 接入；benchmark 有持久化 baseline 和 regression gate。
 
-当前上限：TextAtlas 使用单页缓存，页面满时会显式报错；多页 atlas 在实际内容证明需要时加入。zstd tile data 需要浏览器提供相应解压能力后再启用。
+TextAtlas 已支持多页分配、显式 remove、可选 maxEntries LRU、场景级清理、固定数字字形组合和运行统计。Tiled zlib 数据映射为浏览器原生 deflate；zstd 明确不在运行时支持范围内，应在构建阶段转换为 zlib 或 gzip。
 
 ## 1. 实施原则
 

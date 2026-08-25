@@ -215,7 +215,9 @@ TextAtlas
 
 Text2D 面向世界文字、地图标签、飘字和 debug label。DOM UI 中的按钮、列表、输入框和正文仍由 UI 扩展负责，不通过 Text2D 绘制。IME 和文本编辑也不属于 Text2D。
 
-TextAtlas 使用共享页面缓存 text run；`Text2D.createTexture()` 上传 atlas 页面，`toQuad()` 使用页面 UV 生成 Renderer2D 输入。布局后端缓存 prepared text，宽度变化只重新执行 layout。
+TextAtlas 使用共享多页缓存 text run；每个 entry 记录 page 和 UV，`Text2D.createTexture()` 返回对应页的 GPU texture。Atlas 支持 remove、maxEntries LRU、`clearScene()` 和 page/occupancy/hit-rate 统计。布局后端缓存 prepared text，宽度变化只重新执行 layout。
+
+动态数字使用 `NumericTextAtlas` 的固定字形集合组合 quad，不为每个完整数字字符串创建缓存条目。
 
 ### 3.7 World and Transform2D
 
@@ -333,7 +335,7 @@ Tileset
 
 TilemapRuntime 将 dense layer 或 Tiled infinite chunks 切成 runtime chunks，支持 load/unload、dirty rebuild、可见 chunk 裁剪、ImageLayer 和正交/等距坐标转换。chunk 只输出 TexturedQuad，不解释游戏对象。
 
-异步 Tiled importer 还支持外部 tileset、CSV/base64、gzip/deflate 数据；hexagonal/staggered 提供基础投影坐标转换。
+异步 Tiled importer 还支持外部 tileset、CSV/base64、gzip/deflate 数据；Tiled `zlib` 映射为原生 `deflate`。zstd 运行时解压不受当前浏览器原生 API 支持，importer 会给出明确错误，内容构建阶段应转换为 zlib 或 gzip。hexagonal/staggered 提供基础投影坐标转换。
 
 地图工具建议优先使用 Tiled，通过 importer 转换为内部 `MapAsset`。运行时不直接依赖 Tiled JSON，也不同时支持多个地图格式。
 
