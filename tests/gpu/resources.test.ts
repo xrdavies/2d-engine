@@ -115,6 +115,37 @@ describe("GPU resource core", () => {
     expect(layout.bytesPerRow).toBe(8);
   });
 
+  it("does not cache resources with different initial data by default", () => {
+    const fake = fakeDevice();
+    const manager = new GpuResourceManager(fake.device);
+    const first = manager.createBuffer({
+      size: 4,
+      usage: 1,
+      data: new Uint32Array([1]),
+    });
+    const second = manager.createBuffer({
+      size: 4,
+      usage: 1,
+      data: new Uint32Array([2]),
+    });
+    const textureA = manager.createTexture({
+      size: { width: 1, height: 1 },
+      format: "rgba8unorm",
+      usage: 1,
+      data: new Uint8Array([1, 2, 3, 4]),
+    });
+    const textureB = manager.createTexture({
+      size: { width: 1, height: 1 },
+      format: "rgba8unorm",
+      usage: 1,
+      data: new Uint8Array([4, 3, 2, 1]),
+    });
+
+    expect(second).not.toBe(first);
+    expect(textureB).not.toBe(textureA);
+    expect(manager.size).toBe(4);
+  });
+
   it("supports all creation helpers and debug labels", async () => {
     const fake = fakeDevice();
     const manager = new GpuResourceManager(fake.device);

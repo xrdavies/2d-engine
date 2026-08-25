@@ -323,9 +323,11 @@ export class GpuResourceManager {
 
   createBuffer(options: BufferResourceOptions): GpuResource<GPUBuffer> {
     const { data, cache, cacheKey: explicitKey, ...descriptor } = options;
+    const resolvedCache =
+      cache ?? (data === undefined || explicitKey !== undefined);
     const key = cacheKey(
       "buffer",
-      { cache, cacheKey: explicitKey },
+      { cache: resolvedCache, cacheKey: explicitKey },
       descriptor,
     );
     const cached = key ? this.cache.get(key) : undefined;
@@ -373,9 +375,11 @@ export class GpuResourceManager {
       cacheKey: explicitKey,
       ...descriptor
     } = options;
+    const resolvedCache =
+      cache ?? (data === undefined || explicitKey !== undefined);
     const key = cacheKey(
       "texture",
-      { cache, cacheKey: explicitKey },
+      { cache: resolvedCache, cacheKey: explicitKey },
       descriptor,
     );
     const cached = key ? this.cache.get(key) : undefined;
