@@ -248,6 +248,7 @@ export class Engine {
     this.lastTimestamp = timestamp;
     const step = this.clock.advance((timestamp - previous) / 1000);
     this.diagnostics.beginFrame(timestamp);
+    this.diagnostics.recordResources(this.resources.stats().total);
 
     for (let index = 0; index < step.steps; index += 1) {
       for (const system of this.systems) {

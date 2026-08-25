@@ -25,6 +25,11 @@ export interface ResourceOptions {
   cacheKey?: string;
 }
 
+export interface GpuResourceStats {
+  total: number;
+  byKind: Readonly<Partial<Record<GpuResourceKind, number>>>;
+}
+
 export type BufferResourceOptions = GPUBufferDescriptor &
   ResourceOptions & {
     data?: BufferSource;
@@ -291,6 +296,14 @@ export class GpuResourceManager {
 
   get size(): number {
     return this.resources.size;
+  }
+
+  stats(): GpuResourceStats {
+    const byKind: Partial<Record<GpuResourceKind, number>> = {};
+    for (const resource of this.resources.values()) {
+      byKind[resource.kind] = (byKind[resource.kind] ?? 0) + 1;
+    }
+    return { total: this.resources.size, byKind };
   }
 
   get<T extends GpuResourceObject>(

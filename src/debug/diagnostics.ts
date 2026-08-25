@@ -5,6 +5,7 @@ export interface FrameStats {
   batches: number;
   draws: number;
   visibleItems: number;
+  gpuResources: number;
 }
 
 export class Diagnostics {
@@ -17,6 +18,7 @@ export class Diagnostics {
     batches: 0,
     draws: 0,
     visibleItems: 0,
+    gpuResources: 0,
   };
 
   beginFrame(timestamp = performance.now()): void {
@@ -28,6 +30,10 @@ export class Diagnostics {
       draws: 0,
       visibleItems: 0,
     };
+  }
+
+  recordResources(total: number): void {
+    this.current.gpuResources = total;
   }
 
   endFrame(timestamp = performance.now(), delta = 0): FrameStats {

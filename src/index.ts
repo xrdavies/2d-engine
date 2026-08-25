@@ -29,6 +29,7 @@ export type {
   ComputePipelineResourceOptions,
   GpuResourceHandle,
   GpuResourceKind,
+  GpuResourceStats,
   PipelineResourceOptions,
   RenderPipelineResourceOptions,
   ResourceOptions,
