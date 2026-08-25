@@ -6,16 +6,18 @@ test("triangle example loads", async ({ page }) => {
   await expect(page.locator("#canvas")).toBeVisible();
 });
 
-test("device example reports a WebGPU result", async ({ page }) => {
+test("device example reports a WebGPU result", async ({ page }, testInfo) => {
   await page.goto("/examples/device/");
   await expect(page.locator("#status")).toHaveText(
-    /WebGPU (device ready|unavailable)/,
+    testInfo.project.name === "chromium-webgpu"
+      ? "WebGPU device ready"
+      : /WebGPU (device ready|unavailable)/,
   );
 });
 
 test("sprite example renders or reports unavailable WebGPU", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/examples/sprites/");
   await expect(page.locator("#status")).toHaveText(
     /Rendered Image2D and Sprite|WebGPU unavailable/,
@@ -28,17 +30,35 @@ test("sprite example renders or reports unavailable WebGPU", async ({
   if (rendered) {
     await expect(page.locator("#stats")).toHaveText(/batches/);
   }
+  if (testInfo.project.name === "chromium-webgpu") expect(rendered).toBe(true);
 });
 
-test("text and tilemap examples load", async ({ page }) => {
+test("text and tilemap examples load", async ({ page }, testInfo) => {
   await page.goto("/examples/text/");
   await expect(page.locator("#status")).toHaveText(/line\(s\)/);
+  if (testInfo.project.name === "chromium-webgpu") {
+    expect(
+      await page.evaluate(
+        () =>
+          (window as unknown as { __textRenderedWithWebGpu?: boolean })
+            .__textRenderedWithWebGpu === true,
+      ),
+    ).toBe(true);
+  }
   await page.goto("/examples/tilemap/");
   await expect(page.locator("#status")).toHaveText(/tilemap/);
   await page.goto("/examples/benchmark/");
   await expect(page.locator("#status")).toHaveText(
-    /Benchmark (completed|harness ready)/,
+    testInfo.project.name === "chromium-webgpu"
+      ? "Benchmark completed"
+      : /Benchmark (completed|harness ready)/,
   );
+});
+
+test("Image2D example renders on WebGPU", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-webgpu");
+  await page.goto("/examples/image/");
+  await expect(page.locator("#status")).toHaveText("Image2D rendered");
 });
 
 test("animation and audio examples load", async ({ page }) => {
