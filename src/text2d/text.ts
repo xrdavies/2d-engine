@@ -90,7 +90,9 @@ export class Text2D {
 
   createTexture(device: GPUDevice): GPUTexture {
     this.rasterize();
-    return this.atlas.createTexture(device);
+    const entry = this.atlas.getEntry(this.atlasKey);
+    if (!entry) throw new Error("Text run is missing from the atlas");
+    return this.atlas.createTexture(device, entry.pageIndex);
   }
 
   toQuad(texture: TextureSource): TexturedQuad {
