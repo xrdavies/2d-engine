@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Camera2D } from "../../src/render2d/index.ts";
 import { UniformGrid } from "../../src/spatial/index.ts";
 import { TiledMapImporter, TilemapRuntime } from "../../src/tilemap/index.ts";
 
@@ -41,5 +42,10 @@ describe("Spatial and Tilemap", () => {
     expect(runtime.getTile("ground", 0, 0)).toBe(1);
     expect(runtime.setTile("ground", 1, 0, 1)).toBe(true);
     expect(runtime.getTile("ground", 1, 0)).toBe(1);
+    const result = runtime.render(
+      new Camera2D({ viewportWidth: 64, viewportHeight: 32 }),
+      { texture: {} as never },
+    );
+    expect(result.dirtyChunks).toContain("0:0");
   });
 });

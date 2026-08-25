@@ -27,25 +27,28 @@ try {
     viewportWidth: 640,
     viewportHeight: 360,
   });
-  const items = Array.from(
-    { length: 10_000 },
-    (_, index) =>
-      new Image2D({
-        texture,
-        position: { x: (index % 100) * 16, y: Math.floor(index / 100) * 16 },
-        size: { x: 12, y: 12 },
-      }),
-  );
   const renderer = new Renderer2D(engine.gpu);
-  const start = performance.now();
-  const stats = renderer.render(items, camera);
-  const cpuMs = performance.now() - start;
+  const results = [];
+  for (const count of [1_000, 5_000, 10_000]) {
+    const items = Array.from(
+      { length: count },
+      (_, index) =>
+        new Image2D({
+          texture,
+          position: { x: (index % 100) * 16, y: Math.floor(index / 100) * 16 },
+          size: { x: 12, y: 12 },
+        }),
+    );
+    const start = performance.now();
+    const stats = renderer.render(items, camera);
+    results.push({
+      objects: count,
+      ...stats,
+      cpuMs: performance.now() - start,
+    });
+  }
   status.textContent = "Benchmark completed";
-  result.textContent = JSON.stringify(
-    { objects: items.length, ...stats, cpuMs },
-    null,
-    2,
-  );
+  result.textContent = JSON.stringify(results, null, 2);
 } catch (error) {
   status.textContent = "Benchmark harness ready";
   result.textContent = error instanceof Error ? error.message : String(error);

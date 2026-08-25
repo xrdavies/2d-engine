@@ -48,4 +48,6 @@ test("animation and audio examples load", async ({ page }) => {
   await expect(page.locator("#status")).toHaveText(
     /Audio is locked|Audio context/,
   );
+  await page.locator("#unlock").click();
+  await expect(page.locator("#status")).toHaveText(/Audio context/);
 });
