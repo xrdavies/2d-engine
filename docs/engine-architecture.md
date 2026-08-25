@@ -73,6 +73,7 @@ Extensions / Game
 引擎统一浏览器输入源：
 
 - Pointer、鼠标、触摸
+- Wheel
 - 键盘和 Gamepad
 - 滚轮
 - 浏览器焦点
@@ -212,6 +213,8 @@ TextAtlas
 
 Text2D 面向世界文字、地图标签、飘字和 debug label。DOM UI 中的按钮、列表、输入框和正文仍由 UI 扩展负责，不通过 Text2D 绘制。IME 和文本编辑也不属于 Text2D。
 
+TextAtlas 使用共享页面缓存 text run；`Text2D.createTexture()` 上传 atlas 页面，`toQuad()` 使用页面 UV 生成 Renderer2D 输入。布局后端缓存 prepared text，宽度变化只重新执行 layout。
+
 ### 3.7 World and Transform2D
 
 第一版使用数字 Entity ID 和简单组件存储，不引入 ECS 库：
@@ -254,6 +257,8 @@ Asset Manager 负责：
 - 资源错误
 - 显式 dispose
 - 可选 manifest 和预加载
+
+`uploadImage()` 可将 ImageBitmap/Canvas 上传为 GPU texture；网络请求复用 Fetch 的取消和 timeout 语义。
 
 第一版不做资源数据库、复杂依赖图和编辑器工程文件。
 
@@ -322,6 +327,8 @@ Tileset
 
 引擎只保存和渲染通用数据，不创建 `Building`、`Unit` 或 `ResourcePoint`。
 
+TilemapRuntime 将 dense layer 或 Tiled infinite chunks 切成 runtime chunks，支持 load/unload、dirty rebuild、可见 chunk 裁剪、ImageLayer 和正交/等距坐标转换。chunk 只输出 TexturedQuad，不解释游戏对象。
+
 地图工具建议优先使用 Tiled，通过 importer 转换为内部 `MapAsset`。运行时不直接依赖 Tiled JSON，也不同时支持多个地图格式。
 
 ### 3.13 Network（可选模块）
@@ -348,6 +355,8 @@ WebSocket realtime transport：
 HTTP 适合启动配置、登录、资源元数据、存档和非实时命令；WebSocket 适合服务器推送、实时事件和长连接状态变化。
 
 服务器权威、鉴权流程、API 路径、序列化 schema、快照、插值、预测、回滚和业务协议属于游戏层，不进入引擎核心。引擎不引入 axios、ky、Socket.IO 等网络封装库。
+
+WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `MessageEnvelope`；FakeTransport 使用同一 `MessageTransport` 接口供测试和本地模拟。
 
 ### 3.14 UI Bridge（不提供 UI 组件）
 
@@ -382,6 +391,8 @@ Diagnostics 只记录引擎运行时指标，不决定性能策略：
 - 资源统计和错误标签
 
 统计结果可供示例、开发工具和性能回归使用，不进入游戏业务状态。
+
+`Engine` 集成 World、InputSource、GpuResourceManager 和 Diagnostics。World 提供泛型 `extractRenderItems()`，不绑定任何 Sprite 或游戏领域组件。
 
 ## 4. 技术选型
 

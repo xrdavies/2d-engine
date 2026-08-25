@@ -1,6 +1,6 @@
 # Implementation Plan
 
-当前实现状态：M0-M9 已完成。后续优化只在 benchmark 或实际项目需求证明必要时加入。
+当前实现状态：M0-M9 已完成并通过本轮 P1/P2 复核。后续优化只在 benchmark 或实际项目需求证明必要时加入。
 
 ## 1. 实施原则
 
@@ -77,7 +77,7 @@ M7 的 Tilemap 不阻塞 M6；M8 的 Network Transport 不阻塞核心 2D runtim
 - 无 WebGPU 或 device 创建失败时有明确错误
 - resize 和 DPR 变化后画面尺寸正确
 - 页面切后台再回来不会产生超长 delta
-- Playwright 可以完成一次真实浏览器 GPU smoke test
+- Chromium SwiftShader WebGPU gate 通过；Firefox/WebKit 完成非 GPU smoke test
 
 ### M2：GPU Resource Core
 
@@ -156,6 +156,7 @@ M7 的 Tilemap 不阻塞 M6；M8 的 Network Transport 不阻塞核心 2D runtim
 - 逻辑更新与渲染帧率无关
 - Transform 层级和相机转换有纯逻辑测试
 - entity 销毁后不会出现在 RenderItem 中
+- World 提供泛型 RenderItem extraction，销毁 entity 后不会被提取
 - 示例可以用 World 驱动 Image2D 和 Sprite
 
 ### M5：Assets、Input、Interaction、Animation 和 Audio
@@ -205,6 +206,8 @@ Pretext 只负责测量、换行和行范围。字体栅格化仍由 Canvas2D，
 - 文本宽度、行高和换行结果可重复
 - 文本宽度变化只重新 layout，不重复 prepare
 - TextAtlas 可以复用相同字体、样式和 text run
+- prepared text 在宽度变化时复用，只重新执行 layout
+- Text2D text run 通过 GPU atlas 页面生成 Renderer2D quad
 - 世界文字不依赖 DOM UI
 - 大量短文本的缓存和 batch 数可观测
 
@@ -226,6 +229,8 @@ Pretext 只负责测量、换行和行范围。字体栅格化仍由 Canvas2D，
 
 - tile 数据和游戏对象语义分离
 - 只重建 dirty chunk
+- 支持 chunk load/unload、Tiled infinite chunk 和 ImageLayer
+- 支持正交和等距坐标转换
 - 摄像机外的 chunk 不参与绘制
 - tilemap 和动态 entity 使用独立更新路径
 - importer 不让运行时依赖 Tiled 编辑器或 JSON 结构
@@ -268,6 +273,7 @@ HTTP 用于启动配置、登录、资源元数据、存档和非实时命令；
 - UI 扩展不修改 Renderer2D 和 Interaction Router
 - DOM overlay 与 Canvas resize 同步
 - 一个 fake transport 和 WebSocket transport 可以复用相同上层消息 API
+- WebSocket 连接超时、受控重连、Blob 和 MessageEnvelope 有测试
 
 ### M9：稳定化、性能和发布
 
@@ -276,9 +282,11 @@ HTTP 用于启动配置、登录、资源元数据、存档和非实时命令；
 实现：
 
 - GPU/CPU 资源统计
+- GPU resource kind/total 统计和空资源释放检查
 - 资源泄漏检查
 - device lost 恢复策略
 - 多浏览器 smoke test
+- Chromium SwiftShader WebGPU 强制路径；Firefox/WebKit 平台 smoke test
 - 性能基准和回归记录
 - 公共 API 文档
 - package exports 和版本策略
@@ -299,6 +307,8 @@ HTTP 用于启动配置、登录、资源元数据、存档和非实时命令；
 - public API 有明确的稳定/实验标记
 - benchmark 可重复运行并比较 commit 前后结果
 - 工作区无构建产物和临时资源
+
+当前明确的可选边界：`timestamp-query` 只在 adapter/device feature 可用时接入，不能作为所有浏览器的启动条件。
 
 ## 4. 每阶段的工作节奏
 
