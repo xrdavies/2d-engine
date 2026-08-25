@@ -35,6 +35,21 @@ describe("HttpClient", () => {
     vi.unstubAllGlobals();
   });
 
+  it("honors a signal that was already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new DOMException("Aborted", "AbortError")),
+    );
+    await expect(
+      new HttpClient("https://example.com").text("/aborted", {
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("Abort");
+    vi.unstubAllGlobals();
+  });
+
   it("supports a fake WebSocket transport", async () => {
     class FakeSocket extends EventTarget {
       sent: string | ArrayBuffer | Blob | undefined;

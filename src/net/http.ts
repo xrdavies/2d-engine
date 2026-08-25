@@ -15,6 +15,7 @@ export class HttpClient {
         ? undefined
         : setTimeout(() => controller.abort(), options.timeout);
     const abort = (): void => controller.abort(options.signal?.reason);
+    if (options.signal?.aborted) controller.abort(options.signal.reason);
     options.signal?.addEventListener("abort", abort, { once: true });
     try {
       const requestUrl = this.baseUrl
