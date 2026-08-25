@@ -53,6 +53,9 @@ test("text and tilemap examples load", async ({ page }, testInfo) => {
       ? "Benchmark completed"
       : /Benchmark (completed|harness ready)/,
   );
+  if (testInfo.project.name === "chromium-webgpu") {
+    await expect(page.locator("#result")).toContainText('"passed": true');
+  }
 });
 
 test("Image2D example renders on WebGPU", async ({ page }, testInfo) => {

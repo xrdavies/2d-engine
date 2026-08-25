@@ -19,8 +19,14 @@ export type {
   EngineViewport,
 } from "./core/engine.ts";
 export { Engine } from "./core/engine.ts";
-export type { FrameStats } from "./debug/index.ts";
-export { Diagnostics } from "./debug/index.ts";
+export type {
+  BenchmarkBaseline,
+  BenchmarkBudget,
+  BenchmarkCheckResult,
+  BenchmarkSample,
+  FrameStats,
+} from "./debug/index.ts";
+export { checkBenchmarkBaseline, Diagnostics } from "./debug/index.ts";
 export type { GpuCapabilities, GpuContext, GpuOptions } from "./gpu/device.ts";
 export type {
   BindGroupResourceOptions,

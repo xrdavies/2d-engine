@@ -1,4 +1,11 @@
-import { Camera2D, Engine, Image2D, Renderer2D } from "../../src/index.ts";
+import baseline from "../../benchmarks/baseline.json";
+import {
+  Camera2D,
+  checkBenchmarkBaseline,
+  Engine,
+  Image2D,
+  Renderer2D,
+} from "../../src/index.ts";
 
 const status = document.querySelector<HTMLElement>("#status");
 const result = document.querySelector<HTMLElement>("#result");
@@ -47,8 +54,14 @@ try {
       cpuMs: performance.now() - start,
     });
   }
-  status.textContent = "Benchmark completed";
-  result.textContent = JSON.stringify(results, null, 2);
+  const check = checkBenchmarkBaseline(
+    results.map((sample) => ({ ...sample, name: String(sample.objects) })),
+    baseline,
+  );
+  status.textContent = check.passed
+    ? "Benchmark completed"
+    : "Benchmark regression";
+  result.textContent = JSON.stringify({ samples: results, check }, null, 2);
 } catch (error) {
   status.textContent = "Benchmark harness ready";
   result.textContent = error instanceof Error ? error.message : String(error);
