@@ -113,6 +113,8 @@ export { Camera2D, Image2D, Renderer2D, Sprite } from "./render2d/index.ts";
 export type { Aabb, SpatialEntry } from "./spatial/index.ts";
 export { UniformGrid } from "./spatial/index.ts";
 export type {
+  NumericTextAtlasOptions,
+  NumericTextOptions,
   PreparedText,
   PretextLayoutModule,
   PretextPreparedText,
@@ -128,6 +130,7 @@ export type {
 } from "./text2d/index.ts";
 export {
   CanvasTextLayout,
+  NumericTextAtlas,
   PretextTextLayout,
   Text2D,
   TextAtlas,
