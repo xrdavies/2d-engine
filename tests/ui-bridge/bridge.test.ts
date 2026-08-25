@@ -8,15 +8,20 @@ function elements(rect: {
   width: number;
   height: number;
 }) {
+  const captures = new Set<number>();
   const root = {
     dataset: {},
     parentElement: {},
     style: { pointerEvents: "" },
+    focus: vi.fn(),
   } as unknown as HTMLElement;
   const canvas = {
     width: 1600,
     height: 1200,
     getBoundingClientRect: () => rect,
+    setPointerCapture: (pointerId: number) => captures.add(pointerId),
+    hasPointerCapture: (pointerId: number) => captures.has(pointerId),
+    releasePointerCapture: (pointerId: number) => captures.delete(pointerId),
   } as unknown as HTMLCanvasElement;
   return { canvas, root };
 }
@@ -88,6 +93,13 @@ describe("UIBridge", () => {
     bridge.setInputCaptured(false);
     expect(root.style.pointerEvents).toBe("none");
     expect(bridge.inputCaptured).toBe(false);
+
+    bridge.focus(root);
+    expect(root.focus).toHaveBeenCalledOnce();
+    bridge.capturePointer(7);
+    expect(canvas.hasPointerCapture(7)).toBe(true);
+    bridge.releasePointer(7);
+    expect(canvas.hasPointerCapture(7)).toBe(false);
   });
 });
 

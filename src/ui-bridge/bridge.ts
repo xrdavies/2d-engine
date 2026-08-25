@@ -22,6 +22,7 @@ export class UIBridge {
       this.root.dataset.engineUi = "true";
       this.root.style.position = "absolute";
       this.root.style.pointerEvents = "none";
+      this.root.tabIndex = -1;
       canvas.parentElement?.appendChild(this.root);
     }
     this.mapCoordinates = createCoordinateMapper(
@@ -61,6 +62,20 @@ export class UIBridge {
 
   get inputCaptured(): boolean {
     return this.captured;
+  }
+
+  focus(target: HTMLElement = this.root, options?: FocusOptions): void {
+    target.focus(options);
+  }
+
+  capturePointer(pointerId: number, target: HTMLElement = this.canvas): void {
+    target.setPointerCapture(pointerId);
+  }
+
+  releasePointer(pointerId: number, target: HTMLElement = this.canvas): void {
+    if (target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture(pointerId);
+    }
   }
 
   worldToScreen(point: Point2D): Point2D {
