@@ -100,6 +100,8 @@ export type { Aabb, SpatialEntry } from "./spatial/index.ts";
 export { UniformGrid } from "./spatial/index.ts";
 export type {
   PreparedText,
+  PretextLayoutModule,
+  PretextPreparedText,
   RasterizedText,
   Text2DOptions,
   TextCanvas,
@@ -111,6 +113,7 @@ export type {
 } from "./text2d/index.ts";
 export {
   CanvasTextLayout,
+  PretextTextLayout,
   Text2D,
   TextAtlas,
   TextRasterizer,

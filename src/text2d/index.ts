@@ -7,6 +7,8 @@ export type {
   TextLine,
 } from "./layout.ts";
 export { CanvasTextLayout } from "./layout.ts";
+export type { PretextLayoutModule, PretextPreparedText } from "./pretext.ts";
+export { PretextTextLayout } from "./pretext.ts";
 export type {
   RasterizedText,
   TextCanvas,
