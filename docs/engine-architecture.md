@@ -133,6 +133,8 @@ Modal / focused UI
 
 资源对象使用引擎句柄，底层 `GPUDevice` 通过受控的 debug/escape hatch 暴露，而不是让业务代码到处直接管理资源。
 
+带初始 data 的 Buffer/Texture 默认不缓存，避免相同 descriptor 复用不同内容；需要缓存时由调用方显式提供 `cache: true` 或 `cacheKey`。`GpuContext.withErrorScope()` 用于捕获 validation/out-of-memory/internal 错误。
+
 设备丢失后，Engine 进入 `device-lost` 状态并停止帧循环。调用 `Engine.recreate()` 可重新创建 device 和 runtime；外部资源/Renderer 实例需要由上层按资源描述重新创建。
 
 ### 3.5 Renderer2D
@@ -186,6 +188,8 @@ RenderItem
 
 `Renderer2D.render(..., { staticItems: true })` 会缓存静态数组的排序结果；内容变化后调用 `invalidateStatic()`。
 
+`targetView` 可将相同 pipeline format 的内容渲染到离屏 texture；`createRenderTarget()` 创建兼容的 render attachment。
+
 ### 3.6 Text2D
 
 文字排版和字形生成不放入 Renderer2D，但 Text2D 是引擎自带的 2D 能力。它负责把文字转换为 Renderer2D 可以批量绘制的纹理 quad。
@@ -216,6 +220,8 @@ TextAtlas
 Text2D 面向世界文字、地图标签、飘字和 debug label。DOM UI 中的按钮、列表、输入框和正文仍由 UI 扩展负责，不通过 Text2D 绘制。IME 和文本编辑也不属于 Text2D。
 
 TextAtlas 使用共享多页缓存 text run；每个 entry 记录 page 和 UV，`Text2D.createTexture()` 返回对应页的 GPU texture。Atlas 支持 remove、maxEntries LRU、`clearScene()` 和 page/occupancy/hit-rate 统计。布局后端缓存 prepared text，宽度变化只重新执行 layout。
+
+未显式传入 atlas 的 Text2D 使用共享 `defaultTextAtlas`。`toQuad()` 会 retain entry，并返回带 `dispose()` 的 TextQuad；LRU 只淘汰未被活跃 quad 引用的 entry。
 
 动态数字使用 `NumericTextAtlas` 的固定字形集合组合 quad，不为每个完整数字字符串创建缓存条目。
 
@@ -265,6 +271,8 @@ Asset Manager 负责：
 - 可选 manifest 和预加载
 
 `uploadImage()` 可将 ImageBitmap/Canvas 上传为 GPU texture；网络请求复用 Fetch 的取消和 timeout 语义。
+
+内建 loader 使用 image/json/text/audio/font/gpu 独立缓存命名空间，避免同一 URL 的不同资源类型互相覆盖。
 
 第一版不做资源数据库、复杂依赖图和编辑器工程文件。
 
@@ -366,6 +374,8 @@ HTTP 适合启动配置、登录、资源元数据、存档和非实时命令；
 
 WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `MessageEnvelope`；FakeTransport 使用同一 `MessageTransport` 接口供测试和本地模拟。
 
+并发 `connect()` 复用同一个连接 Promise，不重复创建 socket。
+
 ### 3.14 UI Bridge（不提供 UI 组件）
 
 引擎提供：
@@ -388,6 +398,8 @@ WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `Messag
 
 UI 扩展可以选择 DOM/CSS 或引擎渲染，但不应改变核心 Input/Interaction API。
 
+UIBridge 通过 ResizeObserver 和 window resize/scroll 自动同步，并直接桥接原生 focus 和 pointer capture。
+
 ### 3.15 Diagnostics
 
 Diagnostics 只记录引擎运行时指标，不决定性能策略：
@@ -401,6 +413,8 @@ Diagnostics 只记录引擎运行时指标，不决定性能策略：
 统计结果可供示例、开发工具和性能回归使用，不进入游戏业务状态。
 
 设备支持 `timestamp-query` 时可使用 `GpuTimestampQuery`；benchmark baseline checker 用持久化预算和容差检测 CPU/GPU 回归。
+
+Engine 使用 `performance.now()` 测量 system update/render 的实际 CPU 时间；runtime system 异常会发出 `source: "runtime"` 错误并与后续系统隔离。
 
 `Engine` 集成 World、InputSource、GpuResourceManager 和 Diagnostics。World 提供泛型 `extractRenderItems()`，不绑定任何 Sprite 或游戏领域组件。
 

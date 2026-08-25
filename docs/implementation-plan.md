@@ -12,6 +12,8 @@
 
 TextAtlas 已支持多页分配、显式 remove、可选 maxEntries LRU、场景级清理、固定数字字形组合和运行统计。Tiled zlib 数据映射为浏览器原生 deflate；zstd 明确不在运行时支持范围内，应在构建阶段转换为 zlib 或 gzip。
 
+正确性加固已完成：高 DPR backing size、GPU 初始数据缓存、动画结束帧/多轮事件、runtime error 隔离、TextAtlas retained quad、Asset 类型命名空间、实际 CPU frame time、共享默认 atlas、infinite chunk 解码/flip flags、UI 自动同步、WebSocket 并发连接、Audio mute 音量恢复、CSS 字号解析、GPU error scope、离屏 render target、真实 triangle pass 和 benchmark GPU timing 均有回归验证。
+
 ## 1. 实施原则
 
 - 先做可运行的垂直切片，再扩展抽象。
