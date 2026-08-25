@@ -1,5 +1,6 @@
 export interface AssetLoadOptions {
   signal?: AbortSignal;
+  timeout?: number;
 }
 
 function disposeValue(value: unknown): void {
@@ -14,6 +15,11 @@ function disposeValue(value: unknown): void {
     else if (typeof disposable.destroy === "function") disposable.destroy();
   }
 }
+
+const textureUsage = (): GPUTextureUsageFlags =>
+  typeof GPUTextureUsage === "undefined"
+    ? 0x04 | 0x02
+    : GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST;
 
 export class AssetManager {
   private readonly values = new Map<string, unknown>();
@@ -44,7 +50,7 @@ export class AssetManager {
     options: AssetLoadOptions = {},
   ): Promise<ImageBitmap> {
     return this.load(url, async () => {
-      const response = await fetch(url, { signal: options.signal });
+      const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Image request failed (${response.status}): ${url}`);
       return createImageBitmap(await response.blob());
@@ -53,7 +59,7 @@ export class AssetManager {
 
   async loadJson<T>(url: string, options: AssetLoadOptions = {}): Promise<T> {
     return this.load(url, async () => {
-      const response = await fetch(url, { signal: options.signal });
+      const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`JSON request failed (${response.status}): ${url}`);
       return response.json() as Promise<T>;
@@ -62,7 +68,7 @@ export class AssetManager {
 
   async loadText(url: string, options: AssetLoadOptions = {}): Promise<string> {
     return this.load(url, async () => {
-      const response = await fetch(url, { signal: options.signal });
+      const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Text request failed (${response.status}): ${url}`);
       return response.text();
@@ -75,7 +81,7 @@ export class AssetManager {
     options: AssetLoadOptions = {},
   ): Promise<AudioBuffer> {
     return this.load(url, async () => {
-      const response = await fetch(url, { signal: options.signal });
+      const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Audio request failed (${response.status}): ${url}`);
       return context.decodeAudioData(await response.arrayBuffer());
@@ -93,6 +99,30 @@ export class AssetManager {
       await font.load();
       if (typeof document !== "undefined") document.fonts.add(font);
       return font;
+    });
+  }
+
+  async uploadImage(
+    key: string,
+    image: ImageBitmap | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas,
+    device: GPUDevice,
+    options: { format?: GPUTextureFormat; usage?: GPUTextureUsageFlags } = {},
+  ): Promise<GPUTexture> {
+    return this.load(`gpu:${key}`, async () => {
+      const width = image.width;
+      const height = image.height;
+      const texture = device.createTexture({
+        label: key,
+        size: { width, height, depthOrArrayLayers: 1 },
+        format: options.format ?? "rgba8unorm",
+        usage: options.usage ?? textureUsage(),
+      });
+      device.queue.copyExternalImageToTexture(
+        { source: image },
+        { texture },
+        { width, height, depthOrArrayLayers: 1 },
+      );
+      return texture;
     });
   }
 
@@ -115,5 +145,24 @@ export class AssetManager {
   clear(): void {
     for (const value of this.values.values()) disposeValue(value);
     this.values.clear();
+  }
+
+  private async fetch(
+    url: string,
+    options: AssetLoadOptions,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeout =
+      options.timeout === undefined
+        ? undefined
+        : setTimeout(() => controller.abort(), options.timeout);
+    const abort = (): void => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", abort, { once: true });
+    try {
+      return await fetch(url, { signal: controller.signal });
+    } finally {
+      if (timeout !== undefined) clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", abort);
+    }
   }
 }

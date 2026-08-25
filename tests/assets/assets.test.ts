@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AssetManager } from "../../src/assets/index.ts";
 
 describe("AssetManager", () => {
@@ -16,5 +16,17 @@ describe("AssetManager", () => {
     expect(first).toBe(second);
     expect(loads).toBe(1);
     expect(assets.get<{ value: number }>("answer")?.value).toBe(42);
+  });
+
+  it("uploads decoded image data into a GPU texture", async () => {
+    const queue = { copyExternalImageToTexture: vi.fn() };
+    const device = {
+      createTexture: vi.fn(() => ({ width: 2, height: 3, destroy: vi.fn() })),
+      queue,
+    } as unknown as GPUDevice;
+    const image = { width: 2, height: 3 } as ImageBitmap;
+    const texture = await new AssetManager().uploadImage("hero", image, device);
+    expect(texture).toBeTruthy();
+    expect(queue.copyExternalImageToTexture).toHaveBeenCalledOnce();
   });
 });
