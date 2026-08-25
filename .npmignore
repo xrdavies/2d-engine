@@ -1,0 +1,4 @@
+# The package is intentionally limited by package.json files: ["dist"].
+# Keep generated declaration files even though the repository ignores dist/.
+!dist/
+!dist/**
