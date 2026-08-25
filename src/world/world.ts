@@ -70,6 +70,19 @@ export class World {
     }
   }
 
+  extractRenderItems<T>(
+    extractor: (entity: EntityId, transform: Transform2D) => T | undefined,
+  ): T[] {
+    this.updateTransforms();
+    const items: T[] = [];
+    for (const [entity, transform] of this.transforms) {
+      if (!this.entities.isAlive(entity)) continue;
+      const item = extractor(entity, transform);
+      if (item !== undefined) items.push(item);
+    }
+    return items;
+  }
+
   clear(): void {
     for (const entity of [...this.entities.values()]) {
       this.destroyEntity(entity);

@@ -50,4 +50,19 @@ describe("world", () => {
     expect(world.getTransform(entity)).toBeUndefined();
     expect(world.isAlive(entity)).toBe(false);
   });
+
+  it("extracts only live render items", () => {
+    const world = new World();
+    const first = world.createEntity();
+    const second = world.createEntity();
+    world.addTransform(first);
+    world.addTransform(second);
+
+    expect(world.extractRenderItems((entity) => entity)).toEqual([
+      first,
+      second,
+    ]);
+    world.destroyEntity(first);
+    expect(world.extractRenderItems((entity) => entity)).toEqual([second]);
+  });
 });
