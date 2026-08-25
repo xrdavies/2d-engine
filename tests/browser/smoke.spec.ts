@@ -64,6 +64,27 @@ test("Image2D example renders on WebGPU", async ({ page }, testInfo) => {
   await expect(page.locator("#status")).toHaveText("Image2D rendered");
 });
 
+test("canvas backing size remains stable across high-DPR resize", async ({
+  browser,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-webgpu");
+  const context = await browser.newContext({ deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await page.goto("/examples/device/");
+  await expect(page.locator("#status")).toHaveText("WebGPU device ready");
+  const before = await page.locator("#canvas").evaluate((canvas) => ({
+    width: (canvas as HTMLCanvasElement).width,
+    height: (canvas as HTMLCanvasElement).height,
+  }));
+  await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+  const after = await page.locator("#canvas").evaluate((canvas) => ({
+    width: (canvas as HTMLCanvasElement).width,
+    height: (canvas as HTMLCanvasElement).height,
+  }));
+  expect(after).toEqual(before);
+  await context.close();
+});
+
 test("animation and audio examples load", async ({ page }) => {
   await page.goto("/examples/animation/");
   await expect(page.locator("#status")).toHaveText("AnimationPlayer running");

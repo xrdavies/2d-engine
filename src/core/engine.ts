@@ -58,6 +58,8 @@ export class Engine {
   readonly resources: GpuResourceManager;
   readonly input: InputSource | undefined;
   private readonly createOptions: EngineOptions;
+  private readonly ownsCssWidth: boolean;
+  private readonly ownsCssHeight: boolean;
 
   private _status: EngineStatus = "idle";
   private readonly systems = new Set<EngineSystem>();
@@ -86,6 +88,12 @@ export class Engine {
     this.resources = new GpuResourceManager(gpu);
     this.input = inputEnabled ? new InputSource(canvas) : undefined;
     this.createOptions = createOptions;
+    this.ownsCssWidth =
+      canvas.style.width === "" && canvas.clientWidth === canvas.width;
+    this.ownsCssHeight =
+      canvas.style.height === "" && canvas.clientHeight === canvas.height;
+    if (this.ownsCssWidth) canvas.style.width = `${canvas.clientWidth}px`;
+    if (this.ownsCssHeight) canvas.style.height = `${canvas.clientHeight}px`;
 
     window.addEventListener("resize", this.onResizeBound);
     document.addEventListener("visibilitychange", this.onVisibilityBound);
