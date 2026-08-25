@@ -1,14 +1,16 @@
 # Implementation Plan
 
-当前实现状态：M0-M9 的第一版核心运行时已完成并通过本轮 P1/P2 复核。下方“已知限制”仍未实现，不影响当前 2D runtime 发布，但不能宣称为完整生产级能力。
+当前实现状态：M0-M9 的第一版运行时已完成并通过 P1/P2 复核与跨浏览器回归。
 
-已知限制：
+已完成的原限制项：
 
-- Renderer2D 尚未提供静态 RenderItem cache；当前静态对象仍由调用方缓存和提交。
-- FixedClock 提供 interpolation alpha，但 World/Transform2D 尚未提供内置的前后状态插值器。
-- CanvasTextLayout 目前按 grapheme 做基础换行；复杂 whitespace、word-break、bidi 和完整 typography 由可选 Pretext 后端或未来扩展负责。
-- TilemapRuntime 当前支持正交/等距；hexagonal/staggered、外部 tileset 文件和压缩/编码 tile data 仍未实现。
-- GPU timestamp-query 和自动 benchmark baseline/regression gate 仍是按设备/工具链条件启用的后续能力。
+- Renderer2D 支持静态 RenderItem 排序缓存和显式失效。
+- World/Transform2D 支持固定逻辑步之间的位置、缩放和旋转插值。
+- CanvasTextLayout 支持 whitespace 归一化、pre-wrap、word-break 和 grapheme fallback；复杂 bidi/typography 可使用 Pretext 后端。
+- TilemapRuntime 支持正交、等距、hexagonal/staggered 基础投影；异步 importer 支持外部 tileset、CSV/base64 和 gzip/deflate tile data。
+- GPU timestamp-query 通过可选 `GpuTimestampQuery` 接入；benchmark 有持久化 baseline 和 regression gate。
+
+当前上限：TextAtlas 使用单页缓存，页面满时会显式报错；多页 atlas 在实际内容证明需要时加入。zstd tile data 需要浏览器提供相应解压能力后再启用。
 
 ## 1. 实施原则
 

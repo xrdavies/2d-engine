@@ -184,6 +184,8 @@ RenderItem
 
 不要每个 Image2D 或 Sprite 一次 draw。静态内容可缓存，动态内容独立批处理。Render Graph 延后到出现多个真实渲染 pass 后再实现。
 
+`Renderer2D.render(..., { staticItems: true })` 会缓存静态数组的排序结果；内容变化后调用 `invalidateStatic()`。
+
 ### 3.6 Text2D
 
 文字排版和字形生成不放入 Renderer2D，但 Text2D 是引擎自带的 2D 能力。它负责把文字转换为 Renderer2D 可以批量绘制的纹理 quad。
@@ -235,6 +237,8 @@ Transform2D 支持：
 - anchor / pivot
 
 不提前引入四元数和 3D Transform。未来若重新立项，可增加独立 Transform3D，不强迫 2D API 变成 3D API。
+
+World 在每个 fixed step 前保存 Transform2D 前态，并通过 `extractInterpolatedRenderItems()` 和 interpolation alpha 提供平滑渲染状态。
 
 ### 3.8 Assets
 
@@ -329,6 +333,8 @@ Tileset
 
 TilemapRuntime 将 dense layer 或 Tiled infinite chunks 切成 runtime chunks，支持 load/unload、dirty rebuild、可见 chunk 裁剪、ImageLayer 和正交/等距坐标转换。chunk 只输出 TexturedQuad，不解释游戏对象。
 
+异步 Tiled importer 还支持外部 tileset、CSV/base64、gzip/deflate 数据；hexagonal/staggered 提供基础投影坐标转换。
+
 地图工具建议优先使用 Tiled，通过 importer 转换为内部 `MapAsset`。运行时不直接依赖 Tiled JSON，也不同时支持多个地图格式。
 
 ### 3.13 Network（可选模块）
@@ -391,6 +397,8 @@ Diagnostics 只记录引擎运行时指标，不决定性能策略：
 - 资源统计和错误标签
 
 统计结果可供示例、开发工具和性能回归使用，不进入游戏业务状态。
+
+设备支持 `timestamp-query` 时可使用 `GpuTimestampQuery`；benchmark baseline checker 用持久化预算和容差检测 CPU/GPU 回归。
 
 `Engine` 集成 World、InputSource、GpuResourceManager 和 Diagnostics。World 提供泛型 `extractRenderItems()`，不绑定任何 Sprite 或游戏领域组件。
 
