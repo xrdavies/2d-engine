@@ -10,6 +10,9 @@ import type {
 } from "./types.ts";
 
 const FLIP_FLAGS = 0xe000_0000;
+const FLIP_HORIZONTAL = 0x8000_0000;
+const FLIP_VERTICAL = 0x4000_0000;
+const FLIP_DIAGONAL = 0x2000_0000;
 
 interface RuntimeChunk extends TileChunk {
   layer: TileLayer;
@@ -238,6 +241,9 @@ export class TilemapRuntime {
         const tileset = this.findTileset(gid);
         if (!tileset) continue;
         const position = this.tileToWorld(chunk.x + localX, chunk.y + localY);
+        const region =
+          options.tileUv?.(gid, tileset) ?? this.defaultUv(gid, tileset);
+        const transformed = this.transformUv(rawGid, region);
         items.push({
           texture: options.texture,
           position,
@@ -247,7 +253,8 @@ export class TilemapRuntime {
             this.asset.orientation === "isometric"
               ? { x: 0.5, y: 0 }
               : { x: 0, y: 0 },
-          uv: options.tileUv?.(gid, tileset) ?? this.defaultUv(gid, tileset),
+          uv: transformed.uv,
+          uvTransform: transformed.matrix,
           color: [1, 1, 1, chunk.layer.opacity],
           layer: (options.layer ?? 0) + chunk.layer.id,
           visible: true,
@@ -266,6 +273,46 @@ export class TilemapRuntime {
       y: Math.floor(local / columns) / rows,
       width: 1 / columns,
       height: 1 / rows,
+    };
+  }
+
+  private transformUv(
+    rawGid: number,
+    uv: { x: number; y: number; width: number; height: number },
+  ): {
+    uv: { x: number; y: number; width: number; height: number };
+    matrix: [number, number, number, number];
+  } {
+    let a = 1;
+    let b = 0;
+    let c = 0;
+    let d = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    if ((rawGid & FLIP_DIAGONAL) !== 0) {
+      [a, b, c, d] = [c, d, a, b];
+      [offsetX, offsetY] = [offsetY, offsetX];
+    }
+    if ((rawGid & FLIP_HORIZONTAL) !== 0) {
+      a = -a;
+      b = -b;
+      offsetX = 1 - offsetX;
+    }
+    if ((rawGid & FLIP_VERTICAL) !== 0) {
+      c = -c;
+      d = -d;
+      offsetY = 1 - offsetY;
+    }
+    return {
+      uv: {
+        x: uv.x + uv.width * offsetX,
+        y: uv.y + uv.height * offsetY,
+        width: uv.width,
+        height: uv.height,
+      },
+      matrix: [uv.width * a, uv.width * b, uv.height * c, uv.height * d].map(
+        (value) => (Object.is(value, -0) ? 0 : value),
+      ) as [number, number, number, number],
     };
   }
 

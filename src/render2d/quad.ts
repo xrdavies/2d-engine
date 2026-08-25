@@ -19,6 +19,7 @@ export interface TexturedQuad {
   rotation: number;
   anchor: Vector2;
   uv: TextureRegion;
+  uvTransform?: [number, number, number, number];
   color: [number, number, number, number];
   layer: number;
   visible: boolean;

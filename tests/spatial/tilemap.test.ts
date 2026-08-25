@@ -217,4 +217,43 @@ describe("Spatial and Tilemap", () => {
     expect(runtime.getTile("ground", 0, 0)).toBe(7);
     expect(runtime.getTile("ground", 1, 0)).toBe(8);
   });
+
+  it("applies Tiled horizontal and diagonal flip flags", () => {
+    const asset = TiledMapImporter.fromJson({
+      type: "map",
+      width: 1,
+      height: 1,
+      tilewidth: 32,
+      tileheight: 32,
+      layers: [
+        {
+          id: 1,
+          name: "ground",
+          type: "tilelayer",
+          width: 1,
+          height: 1,
+          data: [0xa0000001],
+        },
+      ],
+      tilesets: [
+        {
+          firstgid: 1,
+          tilewidth: 32,
+          tileheight: 32,
+          columns: 1,
+          tilecount: 1,
+        },
+      ],
+    });
+    const result = new TilemapRuntime(asset).render(
+      new Camera2D({
+        position: { x: 16, y: 16 },
+        viewportWidth: 64,
+        viewportHeight: 64,
+      }),
+      { texture: {} as never },
+    );
+    expect(result.items[0]?.uv).toMatchObject({ x: 1, y: 0 });
+    expect(result.items[0]?.uvTransform).toEqual([0, -1, 1, 0]);
+  });
 });

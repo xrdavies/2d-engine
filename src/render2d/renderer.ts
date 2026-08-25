@@ -26,7 +26,10 @@ fn vertexMain(
     transform0.y * local.x + transform0.w * local.y + transform1.y,
   );
   output.position = vec4<f32>(position, 0.0, 1.0);
-  output.uv = transform1.zw + local * transform2.xy;
+  output.uv = transform1.zw + vec2<f32>(
+    transform2.x * local.x + transform3.z * local.y,
+    transform3.w * local.x + transform2.y * local.y,
+  );
   output.color = vec4<f32>(transform2.zw, transform3.xy);
   return output;
 }
@@ -77,14 +80,15 @@ export function writeTexturedQuadInstance(
   target[index + 5] = -(tyWorld - camera.position.y) * sy;
   target[index + 6] = item.uv.x;
   target[index + 7] = item.uv.y;
-  target[index + 8] = item.uv.width;
-  target[index + 9] = item.uv.height;
+  const uv = item.uvTransform ?? [item.uv.width, 0, 0, item.uv.height];
+  target[index + 8] = uv[0];
+  target[index + 9] = uv[3];
   target[index + 10] = item.color[0];
   target[index + 11] = item.color[1];
   target[index + 12] = item.color[2];
   target[index + 13] = item.color[3];
-  target[index + 14] = 0;
-  target[index + 15] = 0;
+  target[index + 14] = uv[1];
+  target[index + 15] = uv[2];
 }
 
 export class Renderer2D {
