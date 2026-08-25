@@ -50,6 +50,38 @@ export interface Renderer2DOptions {
   maxInstances?: number;
 }
 
+export function writeTexturedQuadInstance(
+  target: Float32Array,
+  index: number,
+  item: TexturedQuad,
+  camera: Camera2D,
+): void {
+  const sx = (2 * camera.zoom) / camera.viewportWidth;
+  const sy = (2 * camera.zoom) / camera.viewportHeight;
+  const cos = Math.cos(item.rotation);
+  const sin = Math.sin(item.rotation);
+  const ax = item.anchor.x * item.size.x;
+  const ay = item.anchor.y * item.size.y;
+  const txWorld = item.position.x - cos * ax + sin * ay;
+  const tyWorld = item.position.y - sin * ax - cos * ay;
+  target[index] = cos * item.size.x * sx;
+  target[index + 1] = -sin * item.size.x * sy;
+  target[index + 2] = -sin * item.size.y * sx;
+  target[index + 3] = -cos * item.size.y * sy;
+  target[index + 4] = (txWorld - camera.position.x) * sx;
+  target[index + 5] = -(tyWorld - camera.position.y) * sy;
+  target[index + 6] = item.uv.x;
+  target[index + 7] = item.uv.y;
+  target[index + 8] = item.uv.width;
+  target[index + 9] = item.uv.height;
+  target[index + 10] = item.color[0];
+  target[index + 11] = item.color[1];
+  target[index + 12] = item.color[2];
+  target[index + 13] = item.color[3];
+  target[index + 14] = 0;
+  target[index + 15] = 0;
+}
+
 export class Renderer2D {
   readonly context: GPUCanvasContext;
   readonly device: GPUDevice;
@@ -185,7 +217,7 @@ export class Renderer2D {
       const batchOffset = offset;
       const instances = new Float32Array(batch.items.length * 16);
       for (const [index, item] of batch.items.entries()) {
-        this.writeInstance(instances, index * 16, item, camera);
+        writeTexturedQuadInstance(instances, index * 16, item, camera);
         offset += 64;
       }
       this.device.queue.writeBuffer(
@@ -205,39 +237,6 @@ export class Renderer2D {
     this.vertexBuffer.destroy();
     this.instanceBuffer.destroy();
     this.bindGroups.clear();
-  }
-
-  private writeInstance(
-    target: Float32Array,
-    index: number,
-    item: TexturedQuad,
-    camera: Camera2D,
-  ): void {
-    const sx = (2 * camera.zoom) / camera.viewportWidth;
-    const sy = (2 * camera.zoom) / camera.viewportHeight;
-    const cos = Math.cos(item.rotation);
-    const sin = Math.sin(item.rotation);
-    const ax = item.anchor.x * item.size.x;
-    const ay = item.anchor.y * item.size.y;
-    const txWorld = item.position.x - cos * ax + sin * ay;
-    const tyWorld = item.position.y - sin * ax - cos * ay;
-    const base = index;
-    target[base] = cos * item.size.x * sx;
-    target[base + 1] = -sin * item.size.x * sy;
-    target[base + 2] = sin * item.size.y * sx;
-    target[base + 3] = cos * item.size.y * sy;
-    target[base + 4] = (txWorld - camera.position.x) * sx;
-    target[base + 5] = -(tyWorld - camera.position.y) * sy;
-    target[base + 6] = item.uv.x;
-    target[base + 7] = item.uv.y;
-    target[base + 8] = item.uv.width;
-    target[base + 9] = item.uv.height;
-    target[base + 10] = item.color[0];
-    target[base + 11] = item.color[1];
-    target[base + 12] = item.color[2];
-    target[base + 13] = item.color[3];
-    target[base + 14] = 0;
-    target[base + 15] = 0;
   }
 
   private isVisible(item: TexturedQuad, camera: Camera2D): boolean {
