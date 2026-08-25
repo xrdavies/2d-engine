@@ -170,9 +170,11 @@ export class InteractionRouter {
     const coordinates =
       input.kind === "pointer"
         ? input.coordinates
-        : input.kind === "touch"
-          ? input.changedTouches[0]?.coordinates
-          : undefined;
+        : input.kind === "wheel"
+          ? input.coordinates
+          : input.kind === "touch"
+            ? input.changedTouches[0]?.coordinates
+            : undefined;
     return coordinates ? (this.hitTest?.(coordinates, input) ?? null) : null;
   }
 
@@ -222,6 +224,10 @@ export class InteractionRouter {
   }
 
   private isFocusEvent(input: NormalizedInputEvent): boolean {
-    return input.kind === "keyboard" || input.kind === "composition";
+    return (
+      input.kind === "keyboard" ||
+      input.kind === "composition" ||
+      input.kind === "text"
+    );
   }
 }

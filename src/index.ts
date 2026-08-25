@@ -54,8 +54,10 @@ export type {
   KeyboardInputEvent,
   NormalizedInputEvent,
   PointerInputEvent,
+  TextInputEvent,
   TouchInputEvent,
   TouchPoint,
+  WheelInputEvent,
 } from "./input/index.ts";
 export {
   ActionMap,

@@ -5,8 +5,11 @@ export type InputEventType =
   | "pointermove"
   | "pointerup"
   | "pointercancel"
+  | "wheel"
   | "keydown"
   | "keyup"
+  | "beforeinput"
+  | "input"
   | "touchstart"
   | "touchmove"
   | "touchend"
@@ -74,6 +77,25 @@ export interface KeyboardInputEvent extends InputEventControl {
   modifiers: InputModifiers;
 }
 
+export interface WheelInputEvent extends InputEventControl {
+  kind: "wheel";
+  type: "wheel";
+  coordinates: InputCoordinates;
+  deltaX: number;
+  deltaY: number;
+  deltaZ: number;
+  deltaMode: number;
+  modifiers: InputModifiers;
+}
+
+export interface TextInputEvent extends InputEventControl {
+  kind: "text";
+  type: "beforeinput" | "input";
+  data: string | null;
+  inputType: string;
+  composing: boolean;
+}
+
 export interface TouchPoint {
   id: number;
   coordinates: InputCoordinates;
@@ -116,7 +138,9 @@ export interface GamepadInputEvent extends InputEventControl {
 
 export type NormalizedInputEvent =
   | PointerInputEvent
+  | WheelInputEvent
   | KeyboardInputEvent
+  | TextInputEvent
   | TouchInputEvent
   | CompositionInputEvent
   | GamepadInputEvent;
@@ -166,6 +190,32 @@ export function normalizeKeyboardEvent(
     repeat: event.repeat,
     composing: event.isComposing,
     modifiers: modifiers(event),
+  });
+}
+
+export function normalizeWheelEvent(
+  event: WheelEvent,
+  mapCoordinates: CoordinateMapper,
+): WheelInputEvent {
+  return Object.assign(new InputEventControl(event), {
+    kind: "wheel" as const,
+    type: "wheel" as const,
+    coordinates: mapCoordinates(event.clientX, event.clientY),
+    deltaX: event.deltaX,
+    deltaY: event.deltaY,
+    deltaZ: event.deltaZ,
+    deltaMode: event.deltaMode,
+    modifiers: modifiers(event),
+  });
+}
+
+export function normalizeTextInputEvent(event: InputEvent): TextInputEvent {
+  return Object.assign(new InputEventControl(event), {
+    kind: "text" as const,
+    type: event.type as TextInputEvent["type"],
+    data: event.data,
+    inputType: event.inputType,
+    composing: event.isComposing,
   });
 }
 

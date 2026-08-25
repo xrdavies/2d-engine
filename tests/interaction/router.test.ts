@@ -3,6 +3,7 @@ import {
   InputEventControl,
   type KeyboardInputEvent,
   type PointerInputEvent,
+  type TextInputEvent,
 } from "../../src/input/index.ts";
 import {
   InteractionRouter,
@@ -99,5 +100,23 @@ describe("InteractionRouter", () => {
     expect(calls).toEqual(["focused", "captured"]);
     router.route(pointer("pointerup", 3));
     expect(router.pointerCapture(3)).toBeNull();
+  });
+
+  it("routes text input to the focused target", () => {
+    const focused: InteractionTarget = {};
+    const router = new InteractionRouter();
+    const calls: string[] = [];
+    router.focus(focused);
+    router.on(focused, "beforeinput", () => calls.push("text"));
+    const text = Object.assign(new InputEventControl(undefined, 0), {
+      kind: "text" as const,
+      type: "beforeinput" as const,
+      data: "字",
+      inputType: "insertText",
+      composing: false,
+    }) satisfies TextInputEvent;
+
+    router.route(text);
+    expect(calls).toEqual(["text"]);
   });
 });

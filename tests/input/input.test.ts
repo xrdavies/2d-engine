@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   ActionMap,
+  InputSource,
   normalizeCompositionEvent,
   normalizeGamepad,
   normalizeKeyboardEvent,
   normalizePointerEvent,
+  normalizeTextInputEvent,
   normalizeTouchEvent,
+  normalizeWheelEvent,
 } from "../../src/input/index.ts";
 import { createCoordinateMapper } from "../../src/platform/index.ts";
 
@@ -126,5 +129,96 @@ describe("input", () => {
     expect(touchEvent.changedTouches[0]).toMatchObject({ id: 2, force: 0.5 });
     expect(composition.data).toBe("kana");
     expect(gamepad).toMatchObject({ index: 1, axes: [0.75] });
+  });
+
+  it("normalizes wheel and text input data", () => {
+    const wheel = normalizeWheelEvent(
+      {
+        type: "wheel",
+        clientX: 10,
+        clientY: 20,
+        deltaX: 1,
+        deltaY: -2,
+        deltaZ: 3,
+        deltaMode: 1,
+        altKey: false,
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: true,
+      } as WheelEvent,
+      (x, y) => ({
+        screen: { x, y },
+        viewport: { x, y },
+        pixel: { x, y },
+      }),
+    );
+    const beforeInput = normalizeTextInputEvent({
+      type: "beforeinput",
+      data: "字",
+      inputType: "insertCompositionText",
+      isComposing: true,
+    } as InputEvent);
+
+    expect(wheel).toMatchObject({
+      kind: "wheel",
+      deltaX: 1,
+      deltaY: -2,
+      deltaZ: 3,
+      deltaMode: 1,
+      modifiers: { ctrl: true, shift: true },
+      coordinates: { viewport: { x: 10, y: 20 } },
+    });
+    expect(beforeInput).toMatchObject({
+      kind: "text",
+      type: "beforeinput",
+      data: "字",
+      inputType: "insertCompositionText",
+      composing: true,
+    });
+  });
+
+  it("emits wheel, beforeinput and input events from the browser source", () => {
+    const target = new EventTarget();
+    const source = new InputSource(target as HTMLElement, {
+      mapCoordinates: (x, y) => ({
+        screen: { x, y },
+        viewport: { x, y },
+        pixel: { x, y },
+      }),
+      gamepads: () => [],
+    });
+    const events: Array<{ type: string; kind: string }> = [];
+    source.onInput(({ kind, type }) => events.push({ kind, type }));
+
+    target.dispatchEvent(
+      Object.assign(new Event("wheel"), {
+        clientX: 4,
+        clientY: 5,
+        deltaX: 0,
+        deltaY: 1,
+        deltaZ: 0,
+        deltaMode: 0,
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+      }),
+    );
+    for (const type of ["beforeinput", "input"] as const) {
+      target.dispatchEvent(
+        Object.assign(new Event(type), {
+          data: "a",
+          inputType: "insertText",
+          isComposing: false,
+        }),
+      );
+    }
+
+    expect(events).toEqual([
+      { kind: "wheel", type: "wheel" },
+      { kind: "text", type: "beforeinput" },
+      { kind: "text", type: "input" },
+    ]);
+    source.dispose();
   });
 });

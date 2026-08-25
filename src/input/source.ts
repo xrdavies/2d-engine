@@ -7,7 +7,9 @@ import {
   normalizeGamepad,
   normalizeKeyboardEvent,
   normalizePointerEvent,
+  normalizeTextInputEvent,
   normalizeTouchEvent,
+  normalizeWheelEvent,
 } from "./events.ts";
 
 export interface InputSourceOptions {
@@ -47,6 +49,9 @@ export class InputSource {
         ),
       );
     }
+    this.listen(target, "wheel", (event) =>
+      this.emit(normalizeWheelEvent(event as WheelEvent, this.mapCoordinates)),
+    );
     for (const type of [
       "touchstart",
       "touchmove",
@@ -64,6 +69,11 @@ export class InputSource {
     for (const type of ["keydown", "keyup"] as const) {
       this.listen(keyboardTarget, type, (event) =>
         this.emit(normalizeKeyboardEvent(event as KeyboardEvent)),
+      );
+    }
+    for (const type of ["beforeinput", "input"] as const) {
+      this.listen(keyboardTarget, type, (event) =>
+        this.emit(normalizeTextInputEvent(event as InputEvent)),
       );
     }
     for (const type of [

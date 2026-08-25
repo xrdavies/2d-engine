@@ -12,10 +12,14 @@ export {
   normalizeGamepad,
   normalizeKeyboardEvent,
   normalizePointerEvent,
+  normalizeTextInputEvent,
   normalizeTouchEvent,
+  normalizeWheelEvent,
   type PointerInputEvent,
+  type TextInputEvent,
   type TouchInputEvent,
   type TouchPoint,
+  type WheelInputEvent,
 } from "./events.ts";
 export {
   type InputHandler,
