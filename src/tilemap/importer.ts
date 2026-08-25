@@ -29,6 +29,9 @@ interface TiledLayerJson {
   image?: string;
   imagewidth?: number;
   imageheight?: number;
+  encoding?: "base64" | "csv";
+  compression?: "gzip" | "zlib" | "zstd" | "";
+  source?: string;
 }
 
 export function importTiledMap(value: unknown): TilemapAsset {
@@ -100,6 +103,9 @@ export function importTiledMap(value: unknown): TilemapAsset {
     tileHeight: Number(map.tileheight ?? 1),
     orientation:
       (map.orientation as TilemapAsset["orientation"]) ?? "orthogonal",
+    staggerAxis: map.staggeraxis as TilemapAsset["staggerAxis"],
+    staggerIndex: map.staggerindex as TilemapAsset["staggerIndex"],
+    hexSideLength: Number(map.hexsidelength ?? 0) || undefined,
     layers: tileLayers,
     objectLayers,
     imageLayers,
@@ -108,6 +114,64 @@ export function importTiledMap(value: unknown): TilemapAsset {
 }
 
 export const TiledMapImporter = { fromJson: importTiledMap };
+
+export async function importTiledMapAsync(
+  value: unknown,
+  loadExternal: (source: string) => Promise<unknown> = async (source) =>
+    (await fetch(source)).json(),
+): Promise<TilemapAsset> {
+  const map = structuredClone(value) as Record<string, unknown>;
+  const tilesets =
+    (map.tilesets as Array<Record<string, unknown>> | undefined) ?? [];
+  map.tilesets = await Promise.all(
+    tilesets.map(async (entry) => {
+      if (typeof entry.source !== "string") return entry;
+      const external = (await loadExternal(entry.source)) as Record<
+        string,
+        unknown
+      >;
+      return { ...external, firstgid: entry.firstgid };
+    }),
+  );
+  const layers =
+    (map.layers as Array<Record<string, unknown>> | undefined) ?? [];
+  for (const layer of layers) {
+    if (layer.type !== "tilelayer" || typeof layer.data !== "string") continue;
+    layer.data = await decodeTileData(
+      layer.data,
+      layer.encoding as string | undefined,
+      layer.compression as string | undefined,
+    );
+    delete layer.encoding;
+    delete layer.compression;
+  }
+  return importTiledMap(map);
+}
+
+async function decodeTileData(
+  encoded: string,
+  encoding: string | undefined,
+  compression: string | undefined,
+): Promise<number[]> {
+  if (encoding === "csv")
+    return encoded.split(",").map((value) => Number(value.trim()));
+  if (encoding !== "base64")
+    throw new Error(`Unsupported tile data encoding: ${encoding ?? "unknown"}`);
+  const bytes = Uint8Array.from(atob(encoded), (character) =>
+    character.charCodeAt(0),
+  );
+  const source = compression
+    ? await new Response(
+        new Blob([bytes])
+          .stream()
+          .pipeThrough(
+            new DecompressionStream(compression as "gzip" | "deflate"),
+          ),
+      ).arrayBuffer()
+    : bytes.buffer;
+  const values = new Uint32Array(source);
+  return [...values];
+}
 
 function toObject(value: Record<string, unknown>): MapObject {
   const properties = Array.isArray(value.properties)

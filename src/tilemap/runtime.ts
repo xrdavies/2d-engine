@@ -28,12 +28,6 @@ export class TilemapRuntime {
     readonly asset: TilemapAsset,
     readonly chunkSize = 32,
   ) {
-    if (
-      asset.orientation !== "orthogonal" &&
-      asset.orientation !== "isometric"
-    ) {
-      throw new Error(`Unsupported tilemap orientation: ${asset.orientation}`);
-    }
     this.chunks = asset.layers.flatMap((layer) => this.createChunks(layer));
     for (const chunk of this.chunks) this.loadChunk(chunk.key);
   }
@@ -133,6 +127,22 @@ export class TilemapRuntime {
         y: Math.floor((y / halfHeight - x / halfWidth) / 2),
       };
     }
+    if (
+      this.asset.orientation === "staggered" ||
+      this.asset.orientation === "hexagonal"
+    ) {
+      if (this.asset.staggerAxis === "x") {
+        const column = Math.floor(x / (this.asset.tileWidth / 2));
+        const offset = this.isOdd(column) ? this.asset.tileHeight / 2 : 0;
+        return {
+          x: column,
+          y: Math.floor((y - offset) / this.asset.tileHeight),
+        };
+      }
+      const row = Math.floor(y / (this.asset.tileHeight / 2));
+      const offset = this.isOdd(row) ? this.asset.tileWidth / 2 : 0;
+      return { x: Math.floor((x - offset) / this.asset.tileWidth), y: row };
+    }
     return {
       x: Math.floor(x / this.asset.tileWidth),
       y: Math.floor(y / this.asset.tileHeight),
@@ -144,6 +154,25 @@ export class TilemapRuntime {
       return {
         x: (x - y) * (this.asset.tileWidth / 2),
         y: (x + y) * (this.asset.tileHeight / 2),
+      };
+    }
+    if (
+      this.asset.orientation === "staggered" ||
+      this.asset.orientation === "hexagonal"
+    ) {
+      if (this.asset.staggerAxis === "x") {
+        return {
+          x: x * (this.asset.tileWidth / 2),
+          y:
+            y * this.asset.tileHeight +
+            (this.isOdd(x) ? this.asset.tileHeight / 2 : 0),
+        };
+      }
+      return {
+        x:
+          x * this.asset.tileWidth +
+          (this.isOdd(y) ? this.asset.tileWidth / 2 : 0),
+        y: y * (this.asset.tileHeight / 2),
       };
     }
     return { x: x * this.asset.tileWidth, y: y * this.asset.tileHeight };
@@ -270,5 +299,10 @@ export class TilemapRuntime {
     return [...this.asset.tilesets]
       .reverse()
       .find((tileset) => gid >= tileset.firstGid);
+  }
+
+  private isOdd(index: number): boolean {
+    const odd = Math.abs(index) % 2 === 1;
+    return this.asset.staggerIndex === "even" ? !odd : odd;
   }
 }

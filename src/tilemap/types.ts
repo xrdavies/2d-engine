@@ -74,6 +74,9 @@ export interface TilemapAsset {
   tileWidth: number;
   tileHeight: number;
   orientation: TilemapOrientation;
+  staggerAxis?: "x" | "y";
+  staggerIndex?: "odd" | "even";
+  hexSideLength?: number;
   layers: readonly TileLayer[];
   objectLayers: readonly ObjectLayer[];
   imageLayers: readonly ImageLayer[];

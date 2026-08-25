@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Camera2D } from "../../src/render2d/index.ts";
 import { UniformGrid } from "../../src/spatial/index.ts";
-import { TiledMapImporter, TilemapRuntime } from "../../src/tilemap/index.ts";
+import {
+  importTiledMapAsync,
+  TiledMapImporter,
+  TilemapRuntime,
+} from "../../src/tilemap/index.ts";
 
 describe("Spatial and Tilemap", () => {
   it("queries a uniform grid", () => {
@@ -95,5 +99,47 @@ describe("Spatial and Tilemap", () => {
     expect(runtime.loadedChunkCount).toBe(0);
     expect(runtime.loadChunk(key)).toBe(true);
     expect(runtime.loadedChunkCount).toBe(1);
+  });
+
+  it("supports staggered projection and async encoded data", async () => {
+    const encoded = btoa(
+      new Uint8Array(new Uint32Array([1]).buffer).reduce(
+        (value, byte) => value + String.fromCharCode(byte),
+        "",
+      ),
+    );
+    const asset = await importTiledMapAsync({
+      type: "map",
+      width: 1,
+      height: 1,
+      tilewidth: 32,
+      tileheight: 32,
+      orientation: "staggered",
+      staggeraxis: "y",
+      staggerindex: "odd",
+      layers: [
+        {
+          id: 1,
+          name: "ground",
+          type: "tilelayer",
+          width: 1,
+          height: 1,
+          data: encoded,
+          encoding: "base64",
+        },
+      ],
+      tilesets: [
+        {
+          firstgid: 1,
+          tilewidth: 32,
+          tileheight: 32,
+          columns: 1,
+          tilecount: 1,
+        },
+      ],
+    });
+    const runtime = new TilemapRuntime(asset);
+    expect(runtime.getTile("ground", 0, 0)).toBe(1);
+    expect(runtime.tileToWorld(0, 1)).toEqual({ x: 16, y: 16 });
   });
 });

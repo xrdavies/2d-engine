@@ -138,7 +138,11 @@ export type {
   TileRenderResult,
   Tileset,
 } from "./tilemap/index.ts";
-export { TiledMapImporter, TilemapRuntime } from "./tilemap/index.ts";
+export {
+  importTiledMapAsync,
+  TiledMapImporter,
+  TilemapRuntime,
+} from "./tilemap/index.ts";
 export { UIBridge } from "./ui-bridge/index.ts";
 export type {
   EntityId,
