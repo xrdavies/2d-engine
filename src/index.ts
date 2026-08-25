@@ -43,6 +43,7 @@ export {
   GpuResourceManager,
   ResourceCache,
 } from "./gpu/resources.ts";
+export { GpuTimestampQuery } from "./gpu/timing.ts";
 export type {
   ActionBinding,
   CompositionInputEvent,
