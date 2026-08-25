@@ -24,7 +24,7 @@ interface TiledLayerJson {
     y: number;
     width: number;
     height: number;
-    data: number[];
+    data: number[] | string;
   }>;
   image?: string;
   imagewidth?: number;
@@ -45,6 +45,13 @@ export function importTiledMap(value: unknown): TilemapAsset {
     if (layer.type === "tilelayer") {
       if (!Array.isArray(layer.data) && !Array.isArray(layer.chunks))
         throw new Error(`Tile layer ${layer.name} must use decoded tile data`);
+      for (const chunk of layer.chunks ?? []) {
+        if (!Array.isArray(chunk.data)) {
+          throw new Error(
+            `Tile layer ${layer.name} contains encoded chunk data`,
+          );
+        }
+      }
       tileLayers.push({
         id: layer.id,
         name: layer.name,
@@ -57,7 +64,7 @@ export function importTiledMap(value: unknown): TilemapAsset {
         y: layer.y ?? 0,
         chunks: (layer.chunks ?? []).map((chunk) => ({
           ...chunk,
-          data: Uint32Array.from(chunk.data),
+          data: Uint32Array.from(chunk.data as number[]),
         })),
       });
     } else if (layer.type === "objectgroup") {
@@ -136,12 +143,24 @@ export async function importTiledMapAsync(
   const layers =
     (map.layers as Array<Record<string, unknown>> | undefined) ?? [];
   for (const layer of layers) {
-    if (layer.type !== "tilelayer" || typeof layer.data !== "string") continue;
-    layer.data = await decodeTileData(
-      layer.data,
-      layer.encoding as string | undefined,
-      layer.compression as string | undefined,
-    );
+    if (layer.type !== "tilelayer") continue;
+    if (typeof layer.data === "string") {
+      layer.data = await decodeTileData(
+        layer.data,
+        layer.encoding as string | undefined,
+        layer.compression as string | undefined,
+      );
+    }
+    for (const chunk of (layer.chunks as
+      | Array<Record<string, unknown>>
+      | undefined) ?? []) {
+      if (typeof chunk.data !== "string") continue;
+      chunk.data = await decodeTileData(
+        chunk.data,
+        layer.encoding as string | undefined,
+        layer.compression as string | undefined,
+      );
+    }
     delete layer.encoding;
     delete layer.compression;
   }

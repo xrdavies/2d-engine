@@ -187,4 +187,34 @@ describe("Spatial and Tilemap", () => {
     );
     Object.assign(globalThis, { DecompressionStream: original });
   });
+
+  it("decodes encoded data inside infinite-map chunks", async () => {
+    const encoded = btoa(
+      new Uint8Array(new Uint32Array([7, 8]).buffer).reduce(
+        (value, byte) => value + String.fromCharCode(byte),
+        "",
+      ),
+    );
+    const asset = await importTiledMapAsync({
+      type: "map",
+      infinite: true,
+      width: 0,
+      height: 0,
+      tilewidth: 32,
+      tileheight: 32,
+      layers: [
+        {
+          id: 1,
+          name: "ground",
+          type: "tilelayer",
+          encoding: "base64",
+          chunks: [{ x: 0, y: 0, width: 2, height: 1, data: encoded }],
+        },
+      ],
+      tilesets: [],
+    });
+    const runtime = new TilemapRuntime(asset);
+    expect(runtime.getTile("ground", 0, 0)).toBe(7);
+    expect(runtime.getTile("ground", 1, 0)).toBe(8);
+  });
 });
