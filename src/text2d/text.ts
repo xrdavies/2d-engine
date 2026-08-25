@@ -33,7 +33,6 @@ export class Text2D {
   private readonly rasterizer = new TextRasterizer();
   private readonly layoutBackend: TextLayoutBackend;
   private readonly layoutOptions: TextLayoutOptions;
-  private rasterizedValue: RasterizedText | undefined;
   private preparedValue: PreparedText | undefined;
   private preparedKey = "";
   private layoutValue: TextLayoutResult | undefined;
@@ -86,7 +85,6 @@ export class Text2D {
       this.rasterizer,
     );
     this.atlasKey = key;
-    this.rasterizedValue = entry.rasterized;
     return entry.rasterized;
   }
 
@@ -96,7 +94,7 @@ export class Text2D {
   }
 
   toQuad(texture: TextureSource): TexturedQuad {
-    const rasterized = this.rasterizedValue ?? this.rasterize();
+    const rasterized = this.rasterize();
     const entry = this.atlas.getEntry(this.atlasKey);
     if (!entry) throw new Error("Text run is missing from the atlas");
     return {
