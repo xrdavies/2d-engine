@@ -17,7 +17,30 @@ export interface GpuContext {
   readonly context: GPUCanvasContext;
   readonly capabilities: GpuCapabilities;
   configureCanvas(): void;
+  withErrorScope<T>(
+    filter: GPUErrorFilter,
+    callback: () => T | Promise<T>,
+  ): Promise<T>;
   destroy(): void;
+}
+
+export async function withGpuErrorScope<T>(
+  device: GPUDevice,
+  filter: GPUErrorFilter,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  device.pushErrorScope(filter);
+  let value: T | undefined;
+  let callbackError: unknown;
+  try {
+    value = await callback();
+  } catch (error) {
+    callbackError = error;
+  }
+  const gpuError = await device.popErrorScope();
+  if (callbackError !== undefined) throw callbackError;
+  if (gpuError) throw new Error(`WebGPU ${filter} error: ${gpuError.message}`);
+  return value as T;
 }
 
 export async function createGpuContext(
@@ -75,6 +98,8 @@ export async function createGpuContext(
       format,
     },
     configureCanvas,
+    withErrorScope: (filter, callback) =>
+      withGpuErrorScope(device, filter, callback),
     destroy: () => device.destroy(),
   };
 }
