@@ -16,6 +16,27 @@ export interface TileLayer {
   visible: boolean;
   x: number;
   y: number;
+  chunks: readonly TileChunk[];
+}
+
+export interface TileChunk {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  data: Uint32Array;
+}
+
+export interface ImageLayer {
+  id: number;
+  name: string;
+  image: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
+  visible: boolean;
 }
 
 export interface MapObject {
@@ -55,6 +76,7 @@ export interface TilemapAsset {
   orientation: TilemapOrientation;
   layers: readonly TileLayer[];
   objectLayers: readonly ObjectLayer[];
+  imageLayers: readonly ImageLayer[];
   tilesets: readonly Tileset[];
 }
 
@@ -65,6 +87,8 @@ export interface TileRenderOptions {
     gid: number,
     tileset: Tileset,
   ) => { x: number; y: number; width: number; height: number };
+  imageTextures?: Readonly<Record<number, TextureSource>>;
+  overlays?: readonly TexturedQuad[];
 }
 
 export interface TileRenderResult {

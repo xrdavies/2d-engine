@@ -42,10 +42,58 @@ describe("Spatial and Tilemap", () => {
     expect(runtime.getTile("ground", 0, 0)).toBe(1);
     expect(runtime.setTile("ground", 1, 0, 1)).toBe(true);
     expect(runtime.getTile("ground", 1, 0)).toBe(1);
-    const result = runtime.render(
-      new Camera2D({ viewportWidth: 64, viewportHeight: 32 }),
-      { texture: {} as never },
-    );
-    expect(result.dirtyChunks).toContain("0:0");
+    const texture = {} as never;
+    const camera = new Camera2D({ viewportWidth: 64, viewportHeight: 32 });
+    const result = runtime.render(camera, { texture });
+    expect(result.dirtyChunks).toContain("1:0:0");
+    expect(runtime.cachedChunkCount).toBe(1);
+    expect(runtime.render(camera, { texture }).dirtyChunks).toEqual([]);
+  });
+
+  it("loads, unloads and projects chunks", () => {
+    const asset = TiledMapImporter.fromJson({
+      type: "map",
+      infinite: true,
+      width: 0,
+      height: 0,
+      tilewidth: 64,
+      tileheight: 32,
+      orientation: "isometric",
+      layers: [
+        {
+          id: 2,
+          name: "ground",
+          type: "tilelayer",
+          chunks: [{ x: 0, y: 0, width: 2, height: 1, data: [1, 1] }],
+        },
+        {
+          id: 3,
+          name: "background",
+          type: "imagelayer",
+          image: "background.png",
+          imagewidth: 128,
+          imageheight: 64,
+        },
+      ],
+      tilesets: [
+        {
+          firstgid: 1,
+          tilewidth: 64,
+          tileheight: 32,
+          columns: 1,
+          tilecount: 1,
+        },
+      ],
+    });
+    const runtime = new TilemapRuntime(asset);
+    const key = runtime.chunkKeys()[0] as string;
+
+    expect(asset.imageLayers).toHaveLength(1);
+    expect(runtime.tileToWorld(1, 0)).toEqual({ x: 32, y: 16 });
+    expect(runtime.worldToTile(32, 16)).toEqual({ x: 1, y: 0 });
+    expect(runtime.unloadChunk(key)).toBe(true);
+    expect(runtime.loadedChunkCount).toBe(0);
+    expect(runtime.loadChunk(key)).toBe(true);
+    expect(runtime.loadedChunkCount).toBe(1);
   });
 });

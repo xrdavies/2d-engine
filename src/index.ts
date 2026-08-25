@@ -121,8 +121,10 @@ export {
   TextRasterizer,
 } from "./text2d/index.ts";
 export type {
+  ImageLayer,
   MapObject,
   ObjectLayer,
+  TileChunk,
   TileLayer,
   TilemapAsset,
   TilemapOrientation,
