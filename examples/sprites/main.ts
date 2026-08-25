@@ -4,6 +4,8 @@ import {
   Image2D,
   Renderer2D,
   Sprite,
+  Transform2D,
+  World,
 } from "../../src/index.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas");
@@ -35,30 +37,63 @@ try {
     viewportWidth: canvas.width,
     viewportHeight: canvas.height,
   });
-  const items = [
-    new Image2D({
-      texture,
-      position: { x: 220, y: 180 },
-      size: { x: 120, y: 120 },
-      color: [0.2, 0.8, 1, 1],
-      layer: 0,
-    }),
-    new Sprite({
-      texture,
-      position: { x: 420, y: 180 },
-      size: { x: 120, y: 120 },
-      frame: { x: 0, y: 0, width: 1, height: 1 },
-      color: [1, 0.55, 0.2, 1],
-      layer: 0,
-    }),
-  ];
-  const stats = renderer.render(items, camera);
+  const world = new World();
+  const imageEntity = world.createEntity();
+  const spriteEntity = world.createEntity();
+  const image = new Image2D({
+    texture,
+    position: { x: 0, y: 0 },
+    size: { x: 120, y: 120 },
+    color: [0.2, 0.8, 1, 1],
+    layer: 0,
+  });
+  const sprite = new Sprite({
+    texture,
+    position: { x: 0, y: 0 },
+    size: { x: 120, y: 120 },
+    frame: { x: 0, y: 0, width: 1, height: 1 },
+    color: [1, 0.55, 0.2, 1],
+    layer: 0,
+  });
+  world.addTransform(
+    imageEntity,
+    new Transform2D({ position: { x: 220, y: 180 } }),
+  );
+  world.addTransform(
+    spriteEntity,
+    new Transform2D({ position: { x: 420, y: 180 } }),
+  );
+  const renderItems = world.extractRenderItems((entity, transform) => {
+    const item =
+      entity === imageEntity
+        ? image
+        : entity === spriteEntity
+          ? sprite
+          : undefined;
+    if (!item) return undefined;
+    item.position = transform.worldPosition;
+    return item;
+  });
+  const stats = renderer.render(renderItems, camera);
   statusElement.textContent = "Rendered Image2D and Sprite";
   statsElement.textContent = JSON.stringify(stats);
   (window as unknown as { __engineRendered?: boolean }).__engineRendered = true;
   engine.on("resize", ({ pixelWidth, pixelHeight }) => {
     camera.setViewport(pixelWidth, pixelHeight);
-    renderer.render(items, camera);
+    renderer.render(
+      world.extractRenderItems((entity, transform) => {
+        const item =
+          entity === imageEntity
+            ? image
+            : entity === spriteEntity
+              ? sprite
+              : undefined;
+        if (!item) return undefined;
+        item.position = transform.worldPosition;
+        return item;
+      }),
+      camera,
+    );
   });
 } catch (error) {
   statusElement.textContent = "WebGPU unavailable";
