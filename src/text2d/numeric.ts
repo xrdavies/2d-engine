@@ -100,6 +100,7 @@ export class NumericTextAtlas {
   }
 
   private fontSize(): number {
-    return Number.parseFloat(this.options.font) || 16;
+    const match = this.options.font.match(/(\d+(?:\.\d+)?)px(?:\s|\/|$)/i);
+    return match ? Number(match[1]) : 16;
   }
 }

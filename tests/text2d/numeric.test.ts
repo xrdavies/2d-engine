@@ -62,4 +62,33 @@ describe("NumericTextAtlas", () => {
     expect(numeric.atlas.size).toBe(3);
     for (const item of [...first, ...second]) item.dispose();
   });
+
+  it("reads the pixel size instead of the font weight", () => {
+    vi.stubGlobal("OffscreenCanvas", FakeCanvas);
+    let lineHeight = 0;
+    const backend: TextLayoutBackend = {
+      prepare: (text, font, options = {}) => ({
+        text,
+        font,
+        options,
+        graphemes: [text],
+        widths: [4],
+      }),
+      layout: (prepared, _width, height) => {
+        lineHeight = height;
+        return {
+          width: 4,
+          height,
+          lineHeight: height,
+          lines: [{ text: prepared.text, width: 4, start: 0, end: 1 }],
+        };
+      },
+    };
+    new NumericTextAtlas({
+      font: "700 24px Inter",
+      characters: "0",
+      layoutBackend: backend,
+    }).prepare();
+    expect(lineHeight).toBe(24);
+  });
 });
