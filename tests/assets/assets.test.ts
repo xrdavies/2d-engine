@@ -29,4 +29,21 @@ describe("AssetManager", () => {
     expect(texture).toBeTruthy();
     expect(queue.copyExternalImageToTexture).toHaveBeenCalledOnce();
   });
+
+  it("keeps built-in asset types in separate cache namespaces", async () => {
+    const assets = new AssetManager();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async () => new Response('{"value":1}')),
+    );
+
+    const json = await assets.loadJson<{ value: number }>("same.asset");
+    const text = await assets.loadText("same.asset");
+
+    expect(json).toEqual({ value: 1 });
+    expect(text).toBe('{"value":1}');
+    expect(assets.getJson("same.asset")).toEqual({ value: 1 });
+    expect(assets.getText("same.asset")).toBe('{"value":1}');
+    vi.unstubAllGlobals();
+  });
 });

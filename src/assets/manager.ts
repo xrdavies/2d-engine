@@ -49,7 +49,7 @@ export class AssetManager {
     url: string,
     options: AssetLoadOptions = {},
   ): Promise<ImageBitmap> {
-    return this.load(url, async () => {
+    return this.load(this.key("image", url), async () => {
       const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Image request failed (${response.status}): ${url}`);
@@ -58,7 +58,7 @@ export class AssetManager {
   }
 
   async loadJson<T>(url: string, options: AssetLoadOptions = {}): Promise<T> {
-    return this.load(url, async () => {
+    return this.load(this.key("json", url), async () => {
       const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`JSON request failed (${response.status}): ${url}`);
@@ -67,7 +67,7 @@ export class AssetManager {
   }
 
   async loadText(url: string, options: AssetLoadOptions = {}): Promise<string> {
-    return this.load(url, async () => {
+    return this.load(this.key("text", url), async () => {
       const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Text request failed (${response.status}): ${url}`);
@@ -80,7 +80,7 @@ export class AssetManager {
     context: BaseAudioContext,
     options: AssetLoadOptions = {},
   ): Promise<AudioBuffer> {
-    return this.load(url, async () => {
+    return this.load(this.key("audio", url), async () => {
       const response = await this.fetch(url, options);
       if (!response.ok)
         throw new Error(`Audio request failed (${response.status}): ${url}`);
@@ -94,7 +94,7 @@ export class AssetManager {
     source: string | ArrayBuffer,
     descriptors?: FontFaceDescriptors,
   ): Promise<FontFace> {
-    return this.load(key, async () => {
+    return this.load(this.key("font", key), async () => {
       const font = new FontFace(family, source, descriptors);
       await font.load();
       if (typeof document !== "undefined") document.fonts.add(font);
@@ -108,7 +108,7 @@ export class AssetManager {
     device: GPUDevice,
     options: { format?: GPUTextureFormat; usage?: GPUTextureUsageFlags } = {},
   ): Promise<GPUTexture> {
-    return this.load(`gpu:${key}`, async () => {
+    return this.load(this.key("gpu", key), async () => {
       const width = image.width;
       const height = image.height;
       const texture = device.createTexture({
@@ -128,6 +128,25 @@ export class AssetManager {
 
   get<T>(key: string): T | undefined {
     return this.values.get(key) as T | undefined;
+  }
+
+  getImage(url: string): ImageBitmap | undefined {
+    return this.get(this.key("image", url));
+  }
+
+  getJson<T>(url: string): T | undefined {
+    return this.get<T>(this.key("json", url));
+  }
+
+  getText(url: string): string | undefined {
+    return this.get(this.key("text", url));
+  }
+
+  disposeAsset(
+    type: "image" | "json" | "text" | "audio" | "font" | "gpu",
+    key: string,
+  ): boolean {
+    return this.dispose(this.key(type, key));
   }
 
   has(key: string): boolean {
@@ -164,5 +183,9 @@ export class AssetManager {
       if (timeout !== undefined) clearTimeout(timeout);
       options.signal?.removeEventListener("abort", abort);
     }
+  }
+
+  private key(type: string, key: string): string {
+    return `${type}:${key}`;
   }
 }
