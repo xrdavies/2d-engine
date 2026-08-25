@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CanvasTextLayout, TextAtlas } from "../../src/text2d/index.ts";
+import {
+  CanvasTextLayout,
+  Text2D,
+  TextAtlas,
+  type TextLayoutBackend,
+} from "../../src/text2d/index.ts";
 
 describe("CanvasTextLayout", () => {
   it("wraps text and reports line ranges", () => {
@@ -15,6 +20,43 @@ describe("CanvasTextLayout", () => {
     );
     expect(layout.lines.map((line) => line.text)).toEqual(["ab", "cd"]);
     expect(layout.height).toBe(32);
+  });
+
+  it("can reuse prepared text across width changes", () => {
+    let prepares = 0;
+    const backend: TextLayoutBackend = {
+      prepare: (text, font, options = {}) => {
+        prepares += 1;
+        return {
+          text,
+          font,
+          options,
+          graphemes: [...text],
+          widths: [...text].map(() => 10),
+        };
+      },
+      layout: (prepared, maxWidth, lineHeight) => ({
+        width: Math.min(maxWidth, 40),
+        height: lineHeight,
+        lineHeight,
+        lines: [
+          {
+            text: prepared.text,
+            width: 40,
+            start: 0,
+            end: prepared.text.length,
+          },
+        ],
+      }),
+    };
+    const text = new Text2D(
+      { text: "abcd", font: "10px sans-serif", maxWidth: 20 },
+      backend,
+    );
+    text.layout();
+    text.maxWidth = 40;
+    text.layout();
+    expect(prepares).toBe(1);
   });
 
   it("reuses a cached rasterized text run", () => {

@@ -2,8 +2,10 @@ import type { TexturedQuad, TextureSource } from "../render2d/quad.ts";
 import { TextAtlas } from "./atlas.ts";
 import {
   CanvasTextLayout,
+  type PreparedText,
   type TextLayoutBackend,
   type TextLayoutOptions,
+  type TextLayoutResult,
 } from "./layout.ts";
 import {
   type RasterizedText,
@@ -17,6 +19,7 @@ export interface Text2DOptions extends TextRasterStyle {
   lineHeight?: number;
   layoutOptions?: TextLayoutOptions;
   position?: { x: number; y: number };
+  atlas?: TextAtlas;
 }
 
 export class Text2D {
@@ -31,6 +34,11 @@ export class Text2D {
   private readonly layoutBackend: TextLayoutBackend;
   private readonly layoutOptions: TextLayoutOptions;
   private rasterizedValue: RasterizedText | undefined;
+  private preparedValue: PreparedText | undefined;
+  private preparedKey = "";
+  private layoutValue: TextLayoutResult | undefined;
+  private layoutKey = "";
+  private atlasKey = "";
 
   constructor(options: Text2DOptions, layoutBackend?: TextLayoutBackend) {
     this.text = options.text ?? "";
@@ -40,65 +48,64 @@ export class Text2D {
     this.lineHeight = options.lineHeight ?? 20;
     this.position = options.position ?? { x: 0, y: 0 };
     this.layoutOptions = options.layoutOptions ?? {};
-    this.atlas = new TextAtlas();
+    this.atlas = options.atlas ?? new TextAtlas();
     this.layoutBackend =
       layoutBackend ?? new CanvasTextLayout(this.createMeasureContext());
   }
 
-  layout() {
-    const prepared = this.layoutBackend.prepare(
-      this.text,
-      this.font,
-      this.layoutOptions,
-    );
-    return this.layoutBackend.layout(prepared, this.maxWidth, this.lineHeight);
+  layout(): TextLayoutResult {
+    const preparedKey = `${this.text}|${this.font}|${JSON.stringify(this.layoutOptions)}`;
+    if (!this.preparedValue || this.preparedKey !== preparedKey) {
+      this.preparedValue = this.layoutBackend.prepare(
+        this.text,
+        this.font,
+        this.layoutOptions,
+      );
+      this.preparedKey = preparedKey;
+      this.layoutValue = undefined;
+    }
+    const layoutKey = `${preparedKey}|${this.maxWidth}|${this.lineHeight}`;
+    if (!this.layoutValue || this.layoutKey !== layoutKey) {
+      this.layoutValue = this.layoutBackend.layout(
+        this.preparedValue,
+        this.maxWidth,
+        this.lineHeight,
+      );
+      this.layoutKey = layoutKey;
+    }
+    return this.layoutValue;
   }
 
   rasterize(): RasterizedText {
-    const key = `${this.text}|${this.font}|${this.color}|${this.maxWidth}|${this.lineHeight}`;
+    const key = `${this.text}|${this.font}|${this.color}|${this.maxWidth}|${this.lineHeight}|${JSON.stringify(this.layoutOptions)}`;
     const layout = this.layout();
-    this.rasterizedValue = this.atlas.getOrCreate(
+    const entry = this.atlas.getOrCreateEntry(
       key,
       layout,
       { font: this.font, color: this.color },
       this.rasterizer,
     );
-    return this.rasterizedValue;
+    this.atlasKey = key;
+    this.rasterizedValue = entry.rasterized;
+    return entry.rasterized;
   }
 
   createTexture(device: GPUDevice): GPUTexture {
-    const rasterized = this.rasterize();
-    const texture = device.createTexture({
-      label: "text2d",
-      size: {
-        width: rasterized.width,
-        height: rasterized.height,
-        depthOrArrayLayers: 1,
-      },
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    device.queue.copyExternalImageToTexture(
-      { source: rasterized.canvas },
-      { texture },
-      {
-        width: rasterized.width,
-        height: rasterized.height,
-        depthOrArrayLayers: 1,
-      },
-    );
-    return texture;
+    this.rasterize();
+    return this.atlas.createTexture(device);
   }
 
   toQuad(texture: TextureSource): TexturedQuad {
     const rasterized = this.rasterizedValue ?? this.rasterize();
+    const entry = this.atlas.getEntry(this.atlasKey);
+    if (!entry) throw new Error("Text run is missing from the atlas");
     return {
       texture,
       position: this.position,
       size: { x: rasterized.width, y: rasterized.height },
       rotation: 0,
       anchor: { x: 0, y: 0 },
-      uv: { x: 0, y: 0, width: 1, height: 1 },
+      uv: entry.uv,
       color: [1, 1, 1, 1],
       layer: 0,
       visible: true,

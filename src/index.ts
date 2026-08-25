@@ -106,6 +106,7 @@ export type {
   PretextPreparedText,
   RasterizedText,
   Text2DOptions,
+  TextAtlasEntry,
   TextCanvas,
   TextLayoutBackend,
   TextLayoutOptions,
