@@ -68,4 +68,25 @@ describe("TextAtlas pages", () => {
     expect(atlas.remove("third")).toBe(true);
     expect(atlas.getEntry("third")).toBeUndefined();
   });
+
+  it("clears one scene without affecting another", () => {
+    vi.stubGlobal("OffscreenCanvas", FakeCanvas);
+    const atlas = new TextAtlas(16, 16);
+    const layout = { width: 4, height: 4, lineHeight: 4, lines: [] };
+    const rasterizer = {
+      rasterize: () => ({
+        canvas: new FakeCanvas(4, 4),
+        width: 4,
+        height: 4,
+        layout,
+      }),
+    } as never;
+    const style = { font: "4px sans-serif" };
+    atlas.getOrCreateEntry("map-label", layout, style, rasterizer, "map");
+    atlas.getOrCreateEntry("hud-label", layout, style, rasterizer, "hud");
+
+    expect(atlas.clearScene("map")).toBe(1);
+    expect(atlas.getEntry("map-label")).toBeUndefined();
+    expect(atlas.getEntry("hud-label")).toBeDefined();
+  });
 });

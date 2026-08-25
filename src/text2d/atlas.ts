@@ -9,6 +9,7 @@ import type {
 
 export interface TextAtlasEntry {
   key: string;
+  scene: string;
   rasterized: RasterizedText;
   pageIndex: number;
   x: number;
@@ -109,6 +110,7 @@ export class TextAtlas {
     layout: TextLayoutResult,
     style: TextRasterStyle,
     rasterizer: TextRasterizer,
+    scene = "global",
   ): TextAtlasEntry {
     const existing = this.getEntry(key);
     if (existing) return existing;
@@ -142,6 +144,7 @@ export class TextAtlas {
     context.drawImage(value.canvas, placement.x, placement.y);
     const entry: TextAtlasEntry = {
       key,
+      scene,
       rasterized: value,
       pageIndex: page.index,
       x: placement.x,
@@ -185,6 +188,14 @@ export class TextAtlas {
       if (page.entries.size === 0) this.resetPage(page);
     }
     return true;
+  }
+
+  clearScene(scene: string): number {
+    const keys = [...this.entries.values()]
+      .filter((entry) => entry.scene === scene)
+      .map((entry) => entry.key);
+    for (const key of keys) this.remove(key);
+    return keys.length;
   }
 
   evictLru(count = 1): readonly string[] {

@@ -20,6 +20,7 @@ export interface Text2DOptions extends TextRasterStyle {
   layoutOptions?: TextLayoutOptions;
   position?: { x: number; y: number };
   atlas?: TextAtlas;
+  scene?: string;
 }
 
 export class Text2D {
@@ -30,6 +31,7 @@ export class Text2D {
   lineHeight: number;
   position: { x: number; y: number };
   readonly atlas: TextAtlas;
+  scene: string;
   private readonly rasterizer = new TextRasterizer();
   private readonly layoutBackend: TextLayoutBackend;
   private readonly layoutOptions: TextLayoutOptions;
@@ -48,6 +50,7 @@ export class Text2D {
     this.position = options.position ?? { x: 0, y: 0 };
     this.layoutOptions = options.layoutOptions ?? {};
     this.atlas = options.atlas ?? new TextAtlas();
+    this.scene = options.scene ?? "global";
     this.layoutBackend =
       layoutBackend ?? new CanvasTextLayout(this.createMeasureContext());
   }
@@ -76,13 +79,14 @@ export class Text2D {
   }
 
   rasterize(): RasterizedText {
-    const key = `${this.text}|${this.font}|${this.color}|${this.maxWidth}|${this.lineHeight}|${JSON.stringify(this.layoutOptions)}`;
+    const key = `${this.scene}|${this.text}|${this.font}|${this.color}|${this.maxWidth}|${this.lineHeight}|${JSON.stringify(this.layoutOptions)}`;
     const layout = this.layout();
     const entry = this.atlas.getOrCreateEntry(
       key,
       layout,
       { font: this.font, color: this.color },
       this.rasterizer,
+      this.scene,
     );
     this.atlasKey = key;
     return entry.rasterized;
