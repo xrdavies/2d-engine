@@ -8,11 +8,20 @@ import type {
 } from "./rasterizer.ts";
 
 export interface TextAtlasEntry {
+  key: string;
   rasterized: RasterizedText;
   pageIndex: number;
   x: number;
   y: number;
   uv: TextureRegion;
+  lastUsed: number;
+}
+
+interface FreeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 interface AtlasPage {
@@ -21,6 +30,8 @@ interface AtlasPage {
   cursorX: number;
   cursorY: number;
   rowHeight: number;
+  entries: Set<string>;
+  freeRects: FreeRect[];
 }
 
 interface GpuPage {
@@ -34,6 +45,7 @@ interface Placement {
   y: number;
   nextX: number;
   nextRowHeight: number;
+  freeIndex?: number;
 }
 
 function createCanvas(width: number, height: number): TextCanvas {
@@ -53,22 +65,30 @@ export class TextAtlas {
   private readonly entries = new Map<string, TextAtlasEntry>();
   private readonly atlasPages: AtlasPage[] = [];
   private readonly gpuPages = new Set<GpuPage>();
+  private accessCounter = 0;
 
   constructor(
     readonly width = 1024,
     readonly height = 1024,
-  ) {}
+    readonly maxEntries = Number.POSITIVE_INFINITY,
+  ) {
+    if (!(maxEntries > 0))
+      throw new RangeError("Text atlas maxEntries must be positive");
+  }
 
   get pageCount(): number {
     return this.atlasPages.length;
   }
 
   get(key: string): RasterizedText | undefined {
+    this.touch(key);
     return this.rasterized.get(key);
   }
 
   getEntry(key: string): TextAtlasEntry | undefined {
-    return this.entries.get(key);
+    const entry = this.entries.get(key);
+    if (entry) entry.lastUsed = ++this.accessCounter;
+    return entry;
   }
 
   getOrCreate(
@@ -90,8 +110,9 @@ export class TextAtlas {
     style: TextRasterStyle,
     rasterizer: TextRasterizer,
   ): TextAtlasEntry {
-    const existing = this.entries.get(key);
+    const existing = this.getEntry(key);
     if (existing) return existing;
+    while (this.entries.size >= this.maxEntries) this.evictLru();
     const value = this.getOrCreate(key, layout, style, rasterizer);
     if (value.width > this.width || value.height > this.height) {
       throw new RangeError("Text run is larger than an atlas page");
@@ -120,6 +141,7 @@ export class TextAtlas {
     if (!context) throw new Error("Unable to create the text atlas context");
     context.drawImage(value.canvas, placement.x, placement.y);
     const entry: TextAtlasEntry = {
+      key,
       rasterized: value,
       pageIndex: page.index,
       x: placement.x,
@@ -130,13 +152,53 @@ export class TextAtlas {
         width: value.width / this.width,
         height: value.height / this.height,
       },
+      lastUsed: ++this.accessCounter,
     };
-    page.cursorX = placement.nextX;
-    page.cursorY = placement.y;
-    page.rowHeight = placement.nextRowHeight;
+    if (placement.freeIndex !== undefined) {
+      const free = page.freeRects.splice(placement.freeIndex, 1)[0];
+      if (free) this.splitFreeRect(page, free, value.width, value.height);
+    } else {
+      page.cursorX = placement.nextX;
+      page.cursorY = placement.y;
+      page.rowHeight = placement.nextRowHeight;
+    }
+    page.entries.add(key);
     this.entries.set(key, entry);
     this.uploadEntry(entry);
     return entry;
+  }
+
+  remove(key: string): boolean {
+    const entry = this.entries.get(key);
+    if (!entry) return false;
+    this.entries.delete(key);
+    this.rasterized.delete(key);
+    const page = this.atlasPages[entry.pageIndex];
+    if (page) {
+      page.entries.delete(key);
+      page.freeRects.push({
+        x: entry.x,
+        y: entry.y,
+        width: entry.rasterized.width,
+        height: entry.rasterized.height,
+      });
+      if (page.entries.size === 0) this.resetPage(page);
+    }
+    return true;
+  }
+
+  evictLru(count = 1): readonly string[] {
+    const removed: string[] = [];
+    for (let index = 0; index < count; index += 1) {
+      let oldest: TextAtlasEntry | undefined;
+      for (const entry of this.entries.values()) {
+        if (!oldest || entry.lastUsed < oldest.lastUsed) oldest = entry;
+      }
+      if (!oldest) break;
+      removed.push(oldest.key);
+      this.remove(oldest.key);
+    }
+    return removed;
   }
 
   createTexture(device: GPUDevice, pageIndex = 0): GPUTexture {
@@ -167,6 +229,7 @@ export class TextAtlas {
     for (const page of this.gpuPages) page.texture.destroy();
     this.gpuPages.clear();
     this.atlasPages.length = 0;
+    this.accessCounter = 0;
   }
 
   get size(): number {
@@ -180,6 +243,8 @@ export class TextAtlas {
       cursorX: 0,
       cursorY: 0,
       rowHeight: 0,
+      entries: new Set(),
+      freeRects: [],
     };
     this.atlasPages.push(page);
     return page;
@@ -190,6 +255,19 @@ export class TextAtlas {
     width: number,
     height: number,
   ): Placement | undefined {
+    const freeIndex = page.freeRects.findIndex(
+      (rect) => width <= rect.width && height <= rect.height,
+    );
+    if (freeIndex >= 0) {
+      const rect = page.freeRects[freeIndex] as FreeRect;
+      return {
+        x: rect.x,
+        y: rect.y,
+        nextX: page.cursorX,
+        nextRowHeight: page.rowHeight,
+        freeIndex,
+      };
+    }
     let x = page.cursorX;
     let y = page.cursorY;
     let rowHeight = page.rowHeight;
@@ -205,6 +283,49 @@ export class TextAtlas {
       nextX: x + width,
       nextRowHeight: Math.max(rowHeight, height),
     };
+  }
+
+  private splitFreeRect(
+    page: AtlasPage,
+    rect: FreeRect,
+    width: number,
+    height: number,
+  ): void {
+    if (rect.width > width) {
+      page.freeRects.push({
+        x: rect.x + width,
+        y: rect.y,
+        width: rect.width - width,
+        height,
+      });
+    }
+    if (rect.height > height) {
+      page.freeRects.push({
+        x: rect.x,
+        y: rect.y + height,
+        width: rect.width,
+        height: rect.height - height,
+      });
+    }
+  }
+
+  private resetPage(page: AtlasPage): void {
+    page.cursorX = 0;
+    page.cursorY = 0;
+    page.rowHeight = 0;
+    page.freeRects.length = 0;
+    const context = page.canvas.getContext("2d");
+    context?.clearRect(0, 0, this.width, this.height);
+    for (const gpuPage of [...this.gpuPages]) {
+      if (gpuPage.pageIndex !== page.index) continue;
+      gpuPage.texture.destroy();
+      this.gpuPages.delete(gpuPage);
+    }
+  }
+
+  private touch(key: string): void {
+    const entry = this.entries.get(key);
+    if (entry) entry.lastUsed = ++this.accessCounter;
   }
 
   private uploadEntry(entry: TextAtlasEntry): void {
