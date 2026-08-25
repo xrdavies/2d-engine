@@ -62,6 +62,13 @@ test("Image2D example renders on WebGPU", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-webgpu");
   await page.goto("/examples/image/");
   await expect(page.locator("#status")).toHaveText("Image2D rendered");
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { __renderTargetReady?: boolean })
+          .__renderTargetReady === true,
+    ),
+  ).toBe(true);
 });
 
 test("canvas backing size remains stable across high-DPR resize", async ({

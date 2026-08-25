@@ -56,6 +56,10 @@ export interface Renderer2DOptions {
 export interface Renderer2DRenderOptions {
   scissor?: { x: number; y: number; width: number; height: number };
   staticItems?: boolean;
+  targetView?: GPUTextureView;
+  clearColor?: GPUColor;
+  loadOp?: GPULoadOp;
+  storeOp?: GPUStoreOp;
 }
 
 export function writeTexturedQuadInstance(
@@ -96,6 +100,7 @@ export class Renderer2D {
   readonly device: GPUDevice;
   readonly clearColor: GPUColor;
   private readonly pipeline: GPURenderPipeline;
+  private readonly format: GPUTextureFormat;
   private readonly vertexBuffer: GPUBuffer;
   private instanceBuffer: GPUBuffer;
   private readonly defaultSampler: GPUSampler;
@@ -112,6 +117,7 @@ export class Renderer2D {
     this.context = gpu.context;
     this.device = gpu.device;
     this.clearColor = options.clearColor ?? { r: 0.04, g: 0.05, b: 0.08, a: 1 };
+    this.format = gpu.capabilities.format;
     const shader = this.device.createShaderModule({
       code: shaderCode,
       label: "renderer2d",
@@ -145,7 +151,7 @@ export class Renderer2D {
         entryPoint: "fragmentMain",
         targets: [
           {
-            format: gpu.capabilities.format,
+            format: this.format,
             blend: {
               color: {
                 srcFactor: "src-alpha",
@@ -218,10 +224,11 @@ export class Renderer2D {
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: this.context.getCurrentTexture().createView(),
-          clearValue: this.clearColor,
-          loadOp: "clear",
-          storeOp: "store",
+          view:
+            options.targetView ?? this.context.getCurrentTexture().createView(),
+          clearValue: options.clearColor ?? this.clearColor,
+          loadOp: options.loadOp ?? "clear",
+          storeOp: options.storeOp ?? "store",
         },
       ],
     });
@@ -260,6 +267,24 @@ export class Renderer2D {
       draws: batches.length,
       visibleItems: visible.length,
     };
+  }
+
+  createRenderTarget(
+    width: number,
+    height: number,
+    usage: GPUTextureUsageFlags = GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC,
+  ): GPUTexture {
+    if (!(width > 0) || !(height > 0)) {
+      throw new RangeError("Render target dimensions must be positive");
+    }
+    return this.device.createTexture({
+      label: "renderer2d-target",
+      size: { width, height, depthOrArrayLayers: 1 },
+      format: this.format,
+      usage,
+    });
   }
 
   invalidateStatic(items: readonly TexturedQuad[]): void {

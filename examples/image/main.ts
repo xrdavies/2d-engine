@@ -18,20 +18,26 @@ try {
     { width: 1, height: 1, depthOrArrayLayers: 1 },
   );
   const renderer = new Renderer2D(engine.gpu);
-  renderer.render(
-    [
-      new Image2D({
-        texture,
-        position: { x: 320, y: 180 },
-        size: { x: 200, y: 120 },
-      }),
-    ],
-    new Camera2D({
+  const items = [
+    new Image2D({
+      texture,
       position: { x: 320, y: 180 },
-      viewportWidth: 640,
-      viewportHeight: 360,
+      size: { x: 200, y: 120 },
     }),
-  );
+  ];
+  const camera = new Camera2D({
+    position: { x: 320, y: 180 },
+    viewportWidth: 640,
+    viewportHeight: 360,
+  });
+  const target = renderer.createRenderTarget(640, 360);
+  await engine.gpu.withErrorScope("validation", () => {
+    renderer.render(items, camera, { targetView: target.createView() });
+  });
+  target.destroy();
+  renderer.render(items, camera);
+  (window as unknown as { __renderTargetReady?: boolean }).__renderTargetReady =
+    true;
   status.textContent = "Image2D rendered";
 } catch (error) {
   status.textContent = error instanceof Error ? error.message : String(error);
