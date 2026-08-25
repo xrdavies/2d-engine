@@ -168,7 +168,7 @@ export class Renderer2D {
   render(
     items: readonly TexturedQuad[],
     camera: Camera2D,
-  ): { batches: number; draws: number } {
+  ): { batches: number; draws: number; visibleItems: number } {
     const visible = items.filter(
       (item) => item.visible && this.isVisible(item, camera),
     );
@@ -230,7 +230,11 @@ export class Renderer2D {
     }
     pass.end();
     this.device.queue.submit([encoder.finish()]);
-    return { batches: batches.length, draws: batches.length };
+    return {
+      batches: batches.length,
+      draws: batches.length,
+      visibleItems: visible.length,
+    };
   }
 
   dispose(): void {
