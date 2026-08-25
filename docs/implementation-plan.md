@@ -1,6 +1,14 @@
 # Implementation Plan
 
-当前实现状态：M0-M9 已完成并通过本轮 P1/P2 复核。后续优化只在 benchmark 或实际项目需求证明必要时加入。
+当前实现状态：M0-M9 的第一版核心运行时已完成并通过本轮 P1/P2 复核。下方“已知限制”仍未实现，不影响当前 2D runtime 发布，但不能宣称为完整生产级能力。
+
+已知限制：
+
+- Renderer2D 尚未提供静态 RenderItem cache；当前静态对象仍由调用方缓存和提交。
+- FixedClock 提供 interpolation alpha，但 World/Transform2D 尚未提供内置的前后状态插值器。
+- CanvasTextLayout 目前按 grapheme 做基础换行；复杂 whitespace、word-break、bidi 和完整 typography 由可选 Pretext 后端或未来扩展负责。
+- TilemapRuntime 当前支持正交/等距；hexagonal/staggered、外部 tileset 文件和压缩/编码 tile data 仍未实现。
+- GPU timestamp-query 和自动 benchmark baseline/regression gate 仍是按设备/工具链条件启用的后续能力。
 
 ## 1. 实施原则
 
