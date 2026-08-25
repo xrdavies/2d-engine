@@ -110,15 +110,21 @@ test("runtime system errors do not stop later frames", async ({
     engine.addSystem({
       render: () => {
         renders += 1;
+        const start = performance.now();
+        while (performance.now() - start < 1) {
+          // Keep one measurable millisecond inside the frame.
+        }
       },
     });
     engine.start();
     await new Promise((resolve) => setTimeout(resolve, 80));
+    const cpuMs = engine.diagnostics.snapshot().cpuMs;
     engine.destroy();
-    return { errors, renders };
+    return { cpuMs, errors, renders };
   });
   expect(result.errors).toBeGreaterThan(0);
   expect(result.renders).toBeGreaterThan(1);
+  expect(result.cpuMs).toBeGreaterThanOrEqual(1);
 });
 
 test("animation and audio examples load", async ({ page }) => {

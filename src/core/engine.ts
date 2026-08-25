@@ -261,7 +261,7 @@ export class Engine {
     const previous = this.lastTimestamp ?? timestamp;
     this.lastTimestamp = timestamp;
     const step = this.clock.advance((timestamp - previous) / 1000);
-    this.diagnostics.beginFrame(timestamp);
+    this.diagnostics.beginFrame(performance.now());
     this.diagnostics.recordResources(this.resources.stats().total);
 
     for (let index = 0; index < step.steps; index += 1) {
@@ -273,7 +273,7 @@ export class Engine {
     for (const system of this.systems) {
       this.invokeSystem(() => system.render?.(step.alpha));
     }
-    this.diagnostics.endFrame(timestamp, step.delta);
+    this.diagnostics.endFrame(performance.now(), step.delta);
 
     this.frameHandle = requestAnimationFrame(this.frame);
   };
