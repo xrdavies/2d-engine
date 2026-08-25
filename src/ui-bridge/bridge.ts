@@ -3,6 +3,7 @@ import {
   type InputCoordinates,
   type Point2D,
 } from "../platform/index.ts";
+import type { Camera2D } from "../render2d/camera.ts";
 
 export class UIBridge {
   readonly root: HTMLElement;
@@ -12,6 +13,7 @@ export class UIBridge {
   constructor(
     readonly canvas: HTMLCanvasElement,
     root?: HTMLElement,
+    readonly camera?: Camera2D,
   ) {
     this.root = root ?? document.createElement("div");
     if (!this.root.parentElement) {
@@ -21,7 +23,12 @@ export class UIBridge {
       this.root.style.pointerEvents = "none";
       canvas.parentElement?.appendChild(this.root);
     }
-    this.mapCoordinates = createCoordinateMapper(canvas);
+    this.mapCoordinates = createCoordinateMapper(
+      canvas,
+      camera
+        ? (point) => camera.screenToWorld(this.toCameraViewport(point, camera))
+        : undefined,
+    );
     this.sync();
   }
 
@@ -48,10 +55,30 @@ export class UIBridge {
 
   worldToScreen(point: Point2D): Point2D {
     const rect = this.canvas.getBoundingClientRect();
-    return { x: rect.left + point.x, y: rect.top + point.y };
+    const screen = this.camera?.worldToScreen(point) ?? point;
+    return {
+      x:
+        rect.left +
+        (this.camera
+          ? (screen.x * rect.width) / this.camera.viewportWidth
+          : screen.x),
+      y:
+        rect.top +
+        (this.camera
+          ? (screen.y * rect.height) / this.camera.viewportHeight
+          : screen.y),
+    };
   }
 
   dispose(): void {
     if (this.root.dataset.engineUi === "true") this.root.remove();
+  }
+
+  private toCameraViewport(point: Point2D, camera: Camera2D): Point2D {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: rect.width > 0 ? (point.x * camera.viewportWidth) / rect.width : 0,
+      y: rect.height > 0 ? (point.y * camera.viewportHeight) / rect.height : 0,
+    };
   }
 }
