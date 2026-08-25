@@ -1,9 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-test("triangle example loads", async ({ page }) => {
+test("triangle example loads", async ({ page }, testInfo) => {
   await page.goto("/examples/triangle/");
-  await expect(page.locator("#status")).toBeVisible();
+  await expect(page.locator("#status")).toHaveText(
+    testInfo.project.name === "chromium-webgpu"
+      ? "Triangle rendered"
+      : /Triangle rendered|WebGPU unavailable/,
+  );
   await expect(page.locator("#canvas")).toBeVisible();
+  if (testInfo.project.name === "chromium-webgpu") {
+    expect(
+      await page.evaluate(
+        () =>
+          (window as unknown as { __triangleRendered?: boolean })
+            .__triangleRendered === true,
+      ),
+    ).toBe(true);
+  }
 });
 
 test("device example reports a WebGPU result", async ({ page }, testInfo) => {
