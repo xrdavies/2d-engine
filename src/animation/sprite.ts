@@ -38,6 +38,31 @@ export class SpriteFrameClip {
     return this.frames[this.frames.length - 1] as SpriteFrame;
   }
 
+  sampleClamped(time: number): SpriteFrame {
+    if (time <= 0) return this.frames[0] as SpriteFrame;
+    if (time >= this.duration) {
+      return this.frames[this.frames.length - 1] as SpriteFrame;
+    }
+    return this.sample(time);
+  }
+
+  eventsDuring(start: number, elapsed: number): readonly AnimationEvent[] {
+    if (this.events.length === 0 || elapsed <= 0) return [];
+    const end = start + elapsed;
+    const epsilon = this.duration * 1e-9;
+    const result: AnimationEvent[] = [];
+    for (const event of this.events) {
+      const firstCycle = Math.floor((start - event.time) / this.duration) + 1;
+      const lastCycle = Math.floor(
+        (end - event.time + epsilon) / this.duration,
+      );
+      for (let cycle = firstCycle; cycle <= lastCycle; cycle += 1) {
+        result.push(event);
+      }
+    }
+    return result.sort((left, right) => left.time - right.time);
+  }
+
   eventsBetween(
     previous: number,
     current: number,
@@ -86,18 +111,26 @@ export class AnimationPlayer {
   update(delta: number): SpriteFrame | undefined {
     const clip = this.clip;
     if (!clip) return undefined;
-    const previous = this.time;
     if (this.playing) {
-      this.time += Math.max(0, delta) * this.speed;
-      if (this.loop) this.time %= clip.duration;
-      else if (this.time >= clip.duration) {
-        this.time = clip.duration;
+      const elapsed = Math.max(0, delta) * Math.max(0, this.speed);
+      const previous = this.time;
+      const next = previous + elapsed;
+      if (this.loop) {
+        for (const event of clip.eventsDuring(previous, elapsed)) {
+          this.onEvent?.(event);
+        }
+        this.time = next % clip.duration;
+      } else {
+        this.time = Math.min(next, clip.duration);
+        for (const event of clip.eventsBetween(previous, this.time, false)) {
+          this.onEvent?.(event);
+        }
+      }
+      if (!this.loop && next >= clip.duration) {
         this.playing = false;
       }
-      for (const event of clip.eventsBetween(previous, this.time, this.loop))
-        this.onEvent?.(event);
     }
-    return clip.sample(this.time);
+    return this.loop ? clip.sample(this.time) : clip.sampleClamped(this.time);
   }
 }
 
