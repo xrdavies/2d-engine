@@ -176,4 +176,4 @@ export {
   World,
 } from "./world/index.ts";
 
-export const ENGINE_VERSION = "0.1.0";
+export const ENGINE_VERSION = "0.1.2";

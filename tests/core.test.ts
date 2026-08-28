@@ -3,7 +3,7 @@ import { Diagnostics, ENGINE_VERSION, FixedClock } from "../src/index.ts";
 
 describe("package entry point", () => {
   it("exports the engine version", () => {
-    expect(ENGINE_VERSION).toBe("0.1.0");
+    expect(ENGINE_VERSION).toBe("0.1.2");
   });
 
   it("clamps long frames and limits fixed steps", () => {
