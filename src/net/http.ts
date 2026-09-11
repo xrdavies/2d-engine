@@ -25,8 +25,27 @@ export class HttpClient {
         ...options,
         signal: controller.signal,
       });
-      if (!response.ok)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) {
+        const error = new Error(
+          `HTTP ${response.status}: ${response.statusText}`,
+        ) as Error & { status: number; body?: unknown };
+        error.status = response.status;
+        const clone = response.clone();
+        try {
+          error.body = await clone.json();
+          const body = error.body as { message?: string; error?: string };
+          if (body?.message || body?.error) {
+            error.message = String(body.message || body.error);
+          }
+        } catch {
+          try {
+            error.body = await response.text();
+          } catch {
+            /* ignore */
+          }
+        }
+        throw error;
+      }
       return response;
     } finally {
       if (timeout !== undefined) clearTimeout(timeout);

@@ -6,6 +6,25 @@ import {
 } from "../../src/net/index.ts";
 
 describe("HttpClient", () => {
+  it("attaches JSON error bodies to failed HTTP requests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "not_your_turn", message: "还没轮到你" }), {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    try {
+      await expect(
+        new HttpClient("https://example.com").json("/cmd"),
+      ).rejects.toMatchObject({ status: 400, message: "还没轮到你" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("checks HTTP status before returning a response", async () => {
     vi.stubGlobal(
       "fetch",

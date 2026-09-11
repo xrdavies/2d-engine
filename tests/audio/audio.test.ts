@@ -67,4 +67,39 @@ describe("AudioManager", () => {
     await audio.resume();
     expect(context.state).toBe("running");
   });
+
+  it("load() fetches a URL and decodes PCM through the audio context", async () => {
+    const decoded = { length: 8 } as AudioBuffer;
+    const decodeAudioData = vi.fn(async (data: ArrayBuffer) => {
+      expect(data.byteLength).toBe(4);
+      return decoded;
+    });
+    const context = {
+      state: "running",
+      currentTime: 0,
+      destination: new FakeNode(),
+      createGain: () => new FakeNode(),
+      createBufferSource: () => new FakeNode(),
+      createScriptProcessor: () =>
+        new FakeNode() as unknown as ScriptProcessorNode,
+      decodeAudioData,
+    } as unknown as AudioContext;
+    const audio = new AudioManager(context);
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer,
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const buffer = await audio.load("/sounds/check.m4a");
+      expect(buffer).toBe(decoded);
+      expect(fetchMock).toHaveBeenCalledWith("/sounds/check.m4a", {
+        signal: undefined,
+      });
+      expect(decodeAudioData).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

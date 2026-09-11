@@ -154,6 +154,15 @@ export class AudioManager {
     };
   }
 
+  async load(url: string, signal?: AbortSignal): Promise<AudioBuffer> {
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+      throw new Error(`Failed to load audio: ${url} (${response.status})`);
+    }
+    const data = await response.arrayBuffer();
+    return this.context.decodeAudioData(data.slice(0));
+  }
+
   async unlock(): Promise<void> {
     await this.resume();
   }
