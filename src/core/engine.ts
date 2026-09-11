@@ -35,6 +35,19 @@ export interface EngineErrorEvent {
   source: "initialization" | "runtime" | "gpu";
 }
 
+/** Layout size. Hidden canvases report clientWidth 0; do not fall back to the drawing buffer. */
+export function canvasCssSize(canvas: {
+  clientWidth: number;
+  clientHeight: number;
+}): { width: number; height: number } {
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if (width > 0 && height > 0) {
+    return { width, height };
+  }
+  return { width: 1, height: 1 };
+}
+
 export interface EngineOptions extends GpuOptions, ClockOptions {
   canvas: HTMLCanvasElement;
   autoStart?: boolean;
@@ -140,9 +153,10 @@ export class Engine {
 
   get viewport(): EngineViewport {
     const dpr = window.devicePixelRatio || 1;
+    const { width, height } = canvasCssSize(this.canvas);
     return {
-      width: this.canvas.clientWidth || this.canvas.width,
-      height: this.canvas.clientHeight || this.canvas.height,
+      width,
+      height,
       pixelWidth: this.canvas.width,
       pixelHeight: this.canvas.height,
       dpr,
@@ -216,8 +230,7 @@ export class Engine {
   resize(): EngineViewport {
     this.assertUsable();
     const dpr = window.devicePixelRatio || 1;
-    const width = this.canvas.clientWidth || this.canvas.width;
-    const height = this.canvas.clientHeight || this.canvas.height;
+    const { width, height } = canvasCssSize(this.canvas);
     const pixelWidth = Math.max(1, Math.round(width * dpr));
     const pixelHeight = Math.max(1, Math.round(height * dpr));
 

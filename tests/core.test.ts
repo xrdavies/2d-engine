@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { canvasCssSize } from "../src/core/engine.ts";
 import { Diagnostics, ENGINE_VERSION, FixedClock } from "../src/index.ts";
 
 describe("package entry point", () => {
@@ -17,6 +18,21 @@ describe("package entry point", () => {
     expect(step.delta).toBe(0.25);
     expect(step.steps).toBe(5);
     expect(step.alpha).toBe(0);
+  });
+
+  it("does not treat a display-none canvas as its drawing-buffer size", () => {
+    expect(canvasCssSize({ clientWidth: 0, clientHeight: 0 })).toEqual({
+      width: 1,
+      height: 1,
+    });
+    expect(canvasCssSize({ clientWidth: 0, clientHeight: 720 })).toEqual({
+      width: 1,
+      height: 1,
+    });
+    expect(canvasCssSize({ clientWidth: 390, clientHeight: 844 })).toEqual({
+      width: 390,
+      height: 844,
+    });
   });
 
   it("records Engine diagnostics on system frames", async () => {
