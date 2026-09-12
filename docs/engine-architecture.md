@@ -386,8 +386,8 @@ WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `Messag
 - UI 输入捕获通知
 - focus 和 pointer capture 协作
 
-引擎还提供 renderer-agnostic 的 `UIRoot`、`UIContainer`、`UILabel`、`UIImage` 和 `UIButton`。
-组件树使用绝对屏幕矩形，按钮支持 disabled、pressed、pointer cancel 和 click；实际绘制通过 `UIRenderer` 适配器交给上层的 Renderer2D/Text2D。
+引擎还提供 renderer-agnostic 的 `UIRoot`、`UIContainer`、`UILabel`、`UIImage`、`UIButton`、`UIInput` 和 `UISlider`。
+组件树使用绝对屏幕矩形，按钮支持 disabled、pressed、pointer cancel 和 click；输入框和滑动条提供值同步与范围/步进约束；实际绘制通过 `UIRenderer` 适配器交给上层的 Renderer2D/Text2D。
 复杂布局、主题和可访问性仍由产品层决定，不改变核心 Input/Interaction API。
 
 UIBridge 通过 ResizeObserver 和 window resize/scroll 自动同步，并直接桥接原生 focus 和 pointer capture。

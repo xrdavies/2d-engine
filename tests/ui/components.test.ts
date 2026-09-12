@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { UIButton, UIContainer, UILabel, UIRoot } from "../../src/ui/index.ts";
+import {
+  UIButton,
+  UIContainer,
+  type UIImage,
+  UIInput,
+  UILabel,
+  UIRoot,
+  UISlider,
+} from "../../src/ui/index.ts";
 
 describe("retained UI components", () => {
   it("renders labels and buttons through a renderer adapter", () => {
@@ -25,12 +33,43 @@ describe("retained UI components", () => {
       label: (node) => seen.push(`label:${node.text}`),
       image: () => {},
       button: (node) => seen.push(`button:${node.text}`),
+      input: (node) => seen.push(`input:${node.value}`),
+      slider: (node) => seen.push(`slider:${node.value}`),
     });
     expect(seen).toEqual(["button:OK", "label:Ready"]);
     expect(root.pointerDown(12, 32)).toBe(button);
     expect(button.pressed).toBe(true);
     expect(root.pointerUp(12, 32)).toBe(true);
     expect(click).toHaveBeenCalledWith(button);
+  });
+
+  it("renders and updates inputs and sliders", () => {
+    const input = new UIInput(
+      "name",
+      { x: 0, y: 0, width: 100, height: 20 },
+      "A",
+    );
+    const slider = new UISlider(
+      "bet",
+      { x: 10, y: 0, width: 80, height: 20 },
+      1,
+      9,
+      1,
+    );
+    const seen: string[] = [];
+    const renderer = {
+      label: () => {},
+      image: (_node: UIImage) => {},
+      button: () => {},
+      input: (node: UIInput) => seen.push(node.placeholder),
+      slider: (node: UISlider) => seen.push(String(node.value)),
+    };
+    input.placeholder = "昵称";
+    input.setValue("玩家");
+    slider.setValue(slider.valueAt(50));
+    input.render(renderer);
+    slider.render(renderer);
+    expect(seen).toEqual(["昵称", "5"]);
   });
 
   it("does not activate disabled or cancelled buttons", () => {

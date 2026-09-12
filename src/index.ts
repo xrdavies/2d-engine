@@ -189,8 +189,10 @@ export {
 export type {
   HitRect,
   UIClickHandler,
+  UIInputHandler,
   UIRect,
   UIRenderer,
+  UISliderHandler,
 } from "./ui/index.ts";
 export {
   hitTest,
@@ -198,9 +200,11 @@ export {
   UIButton,
   UIContainer,
   UIImage,
+  UIInput,
   UILabel,
   UINode,
   UIRoot,
+  UISlider,
 } from "./ui/index.ts";
 export { UIBridge } from "./ui-bridge/index.ts";
 export type {
