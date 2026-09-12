@@ -20,14 +20,22 @@ describe("AssetManager", () => {
 
   it("uploads decoded image data into a GPU texture", async () => {
     const queue = { copyExternalImageToTexture: vi.fn() };
+    const createTexture = vi.fn((_descriptor: { usage: number }) => ({
+      width: 2,
+      height: 3,
+      destroy: vi.fn(),
+    }));
     const device = {
-      createTexture: vi.fn(() => ({ width: 2, height: 3, destroy: vi.fn() })),
+      createTexture,
       queue,
     } as unknown as GPUDevice;
     const image = { width: 2, height: 3 } as ImageBitmap;
     const texture = await new AssetManager().uploadImage("hero", image, device);
     expect(texture).toBeTruthy();
     expect(queue.copyExternalImageToTexture).toHaveBeenCalledOnce();
+    const descriptor = createTexture.mock.calls[0]?.[0];
+    expect(descriptor).toBeDefined();
+    expect((descriptor?.usage ?? 0) & 0x10).toBe(0x10);
   });
 
   it("keeps built-in asset types in separate cache namespaces", async () => {

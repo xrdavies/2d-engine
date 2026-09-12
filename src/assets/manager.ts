@@ -18,8 +18,10 @@ function disposeValue(value: unknown): void {
 
 const textureUsage = (): GPUTextureUsageFlags =>
   typeof GPUTextureUsage === "undefined"
-    ? 0x04 | 0x02
-    : GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST;
+    ? 0x04 | 0x02 | 0x10
+    : GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT;
 
 export class AssetManager {
   private readonly values = new Map<string, unknown>();

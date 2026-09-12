@@ -259,7 +259,7 @@ UI Bridge 实现：
 - UI 输入捕获和释放
 - focus/pointer capture 协作
 
-不实现 Button、Panel、List、布局、主题或 UI 渲染器。
+实现轻量 renderer-agnostic UI 组件（`UiRoot`、`UiContainer`、`UiLabel`、`UiImage`、`UiButton`）；复杂布局、主题和产品级可访问性留给上层。
 
 HTTP request/response 实现：
 

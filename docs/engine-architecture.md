@@ -376,7 +376,7 @@ WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `Messag
 
 并发 `connect()` 复用同一个连接 Promise，不重复创建 socket。
 
-### 3.14 UI Bridge（不提供 UI 组件）
+### 3.14 UI Bridge 与轻量 UI 组件
 
 引擎提供：
 
@@ -386,17 +386,9 @@ WebSocketTransport 提供连接超时、受控重连、Blob 归一化和 `Messag
 - UI 输入捕获通知
 - focus 和 pointer capture 协作
 
-以下内容延后到 UI 扩展：
-
-- DOM/CSS renderer
-- WebGPU UI renderer
-- 组件树
-- 布局和样式
-- Button、Panel、List、Modal
-- 文本排版
-- 主题和可访问性
-
-UI 扩展可以选择 DOM/CSS 或引擎渲染，但不应改变核心 Input/Interaction API。
+引擎还提供 renderer-agnostic 的 `UiRoot`、`UiContainer`、`UiLabel`、`UiImage` 和 `UiButton`。
+组件树使用绝对屏幕矩形，按钮支持 disabled、pressed、pointer cancel 和 click；实际绘制通过 `UiRenderer` 适配器交给上层的 Renderer2D/Text2D。
+复杂布局、主题和可访问性仍由产品层决定，不改变核心 Input/Interaction API。
 
 UIBridge 通过 ResizeObserver 和 window resize/scroll 自动同步，并直接桥接原生 focus 和 pointer capture。
 

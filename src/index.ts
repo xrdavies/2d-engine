@@ -1,4 +1,9 @@
-export type { AnimationEvent, EaseFn, SpriteFrame, TweenHandle } from "./animation/index.ts";
+export type {
+  AnimationEvent,
+  EaseFn,
+  SpriteFrame,
+  TweenHandle,
+} from "./animation/index.ts";
 export {
   AnimationPlayer,
   clamp01,
@@ -131,8 +136,8 @@ export {
   Image2D,
   Renderer2D,
   Shape2D,
-  solidTextureBytes,
   Sprite,
+  solidTextureBytes,
   uploadCanvasTexture,
 } from "./render2d/index.ts";
 export type { Aabb, SpatialEntry } from "./spatial/index.ts";
@@ -181,9 +186,23 @@ export {
   TiledMapImporter,
   TilemapRuntime,
 } from "./tilemap/index.ts";
+export type {
+  HitRect,
+  UiClickHandler,
+  UiRect,
+  UiRenderer,
+} from "./ui/index.ts";
+export {
+  hitTest,
+  rectContains,
+  UiButton,
+  UiContainer,
+  UiImage,
+  UiLabel,
+  UiNode,
+  UiRoot,
+} from "./ui/index.ts";
 export { UIBridge } from "./ui-bridge/index.ts";
-export type { HitRect } from "./ui/index.ts";
-export { hitTest, rectContains } from "./ui/index.ts";
 export type {
   EntityId,
   Matrix3,
