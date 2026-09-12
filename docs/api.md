@@ -5,7 +5,7 @@ The package exports its supported runtime surface from `src/index.ts`:
 - Runtime: `Engine`, `FixedClock`, `World`, `ComponentStore`, `Transform2D`
 - GPU: `GpuResourceManager` and typed resource handles
 - Rendering: `Renderer2D`, `Camera2D`, `Image2D`, `Sprite`, `TexturedQuad`
-- UI: retained `UiRoot` / `UiContainer` with `UiLabel`, `UiImage`, and `UiButton`; render through a renderer adapter and route pointer activation without DOM.
+- UI: retained `UIRoot` / `UIContainer` with `UILabel`, `UIImage`, and `UIButton`; render through a renderer adapter and route pointer activation without DOM.
 - Content: `AssetManager`, `Text2D`, `TextQuad`, `TextAtlas`, `defaultTextAtlas`, `NumericTextAtlas`, `TilemapRuntime`
 - Interaction: `InputSource`, `ActionMap`, `InteractionRouter`, `UIBridge`
 - Media and network: `AudioManager`, `HttpClient`, `WebSocketTransport`

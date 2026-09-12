@@ -188,19 +188,19 @@ export {
 } from "./tilemap/index.ts";
 export type {
   HitRect,
-  UiClickHandler,
-  UiRect,
-  UiRenderer,
+  UIClickHandler,
+  UIRect,
+  UIRenderer,
 } from "./ui/index.ts";
 export {
   hitTest,
   rectContains,
-  UiButton,
-  UiContainer,
-  UiImage,
-  UiLabel,
-  UiNode,
-  UiRoot,
+  UIButton,
+  UIContainer,
+  UIImage,
+  UILabel,
+  UINode,
+  UIRoot,
 } from "./ui/index.ts";
 export { UIBridge } from "./ui-bridge/index.ts";
 export type {

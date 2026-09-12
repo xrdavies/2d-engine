@@ -1,40 +1,40 @@
 import type { TextureRegion, TextureSource } from "../render2d/index.ts";
 
-export interface UiRect {
+export interface UIRect {
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-export interface UiRenderer {
-  label(node: UiLabel): void;
-  image(node: UiImage): void;
-  button(node: UiButton): void;
+export interface UIRenderer {
+  label(node: UILabel): void;
+  image(node: UIImage): void;
+  button(node: UIButton): void;
 }
 
-export type UiClickHandler = (button: UiButton) => void;
+export type UIClickHandler = (button: UIButton) => void;
 
 /** Renderer-agnostic retained UI node. Children use absolute viewport rects. */
-export class UiNode {
-  parent: UiNode | null = null;
-  readonly children: UiNode[] = [];
+export class UINode {
+  parent: UINode | null = null;
+  readonly children: UINode[] = [];
   visible = true;
 
   constructor(
     readonly id: string,
-    public rect: UiRect,
+    public rect: UIRect,
     public layer = 0,
   ) {}
 
-  add<T extends UiNode>(child: T): T {
+  add<T extends UINode>(child: T): T {
     child.parent?.remove(child);
     child.parent = this;
     this.children.push(child);
     return child;
   }
 
-  remove(child: UiNode): boolean {
+  remove(child: UINode): boolean {
     const index = this.children.indexOf(child);
     if (index < 0) return false;
     this.children.splice(index, 1);
@@ -52,21 +52,21 @@ export class UiNode {
     );
   }
 
-  render(renderer: UiRenderer): void {
+  render(renderer: UIRenderer): void {
     if (!this.visible) return;
     this.draw(renderer);
     for (const child of this.children) child.render(renderer);
   }
 
-  protected draw(_renderer: UiRenderer): void {}
+  protected draw(_renderer: UIRenderer): void {}
 }
 
-export class UiContainer extends UiNode {}
+export class UIContainer extends UINode {}
 
-export class UiLabel extends UiNode {
+export class UILabel extends UINode {
   constructor(
     id: string,
-    rect: UiRect,
+    rect: UIRect,
     public text: string,
     public font = "14px sans-serif",
     public color = "#f4efe4",
@@ -75,15 +75,15 @@ export class UiLabel extends UiNode {
     super(id, rect, layer);
   }
 
-  protected override draw(renderer: UiRenderer): void {
+  protected override draw(renderer: UIRenderer): void {
     renderer.label(this);
   }
 }
 
-export class UiImage extends UiNode {
+export class UIImage extends UINode {
   constructor(
     id: string,
-    rect: UiRect,
+    rect: UIRect,
     public texture: TextureSource,
     public uv: TextureRegion = { x: 0, y: 0, width: 1, height: 1 },
     layer = 0,
@@ -91,40 +91,40 @@ export class UiImage extends UiNode {
     super(id, rect, layer);
   }
 
-  protected override draw(renderer: UiRenderer): void {
+  protected override draw(renderer: UIRenderer): void {
     renderer.image(this);
   }
 }
 
-export class UiButton extends UiNode {
+export class UIButton extends UINode {
   disabled = false;
   pressed = false;
 
   constructor(
     id: string,
-    rect: UiRect,
+    rect: UIRect,
     public text: string,
-    public readonly onClick?: UiClickHandler,
+    public readonly onClick?: UIClickHandler,
     layer = 0,
   ) {
     super(id, rect, layer);
   }
 
-  protected override draw(renderer: UiRenderer): void {
+  protected override draw(renderer: UIRenderer): void {
     renderer.button(this);
   }
 }
 
-export class UiRoot extends UiContainer {
-  private active: UiButton | null = null;
+export class UIRoot extends UIContainer {
+  private active: UIButton | null = null;
 
-  hitTest(x: number, y: number): UiButton | null {
-    let best: UiButton | null = null;
-    const visit = (node: UiNode) => {
+  hitTest(x: number, y: number): UIButton | null {
+    let best: UIButton | null = null;
+    const visit = (node: UINode) => {
       if (!node.visible) return;
       for (const child of node.children) visit(child);
       if (
-        node instanceof UiButton &&
+        node instanceof UIButton &&
         !node.disabled &&
         node.contains(x, y) &&
         (!best || node.layer >= best.layer)
@@ -135,7 +135,7 @@ export class UiRoot extends UiContainer {
     return best;
   }
 
-  pointerDown(x: number, y: number): UiButton | null {
+  pointerDown(x: number, y: number): UIButton | null {
     this.active = this.hitTest(x, y);
     if (this.active) this.active.pressed = true;
     return this.active;

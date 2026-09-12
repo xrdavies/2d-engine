@@ -1,11 +1,11 @@
-export type { UiClickHandler, UiRect, UiRenderer } from "./components.ts";
+export type { UIClickHandler, UIRect, UIRenderer } from "./components.ts";
 export {
-  UiButton,
-  UiContainer,
-  UiImage,
-  UiLabel,
-  UiNode,
-  UiRoot,
+  UIButton,
+  UIContainer,
+  UIImage,
+  UILabel,
+  UINode,
+  UIRoot,
 } from "./components.ts";
 export type { HitRect } from "./hit.ts";
 export { hitTest, rectContains } from "./hit.ts";
