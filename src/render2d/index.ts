@@ -11,3 +11,11 @@ export type {
 export { Image2D, Sprite } from "./quad.ts";
 export type { Renderer2DOptions, Renderer2DRenderOptions } from "./renderer.ts";
 export { Renderer2D } from "./renderer.ts";
+export type { Shape2DOptions } from "./shape.ts";
+export { Shape2D } from "./shape.ts";
+export type { CanvasTextureSource } from "./texture.ts";
+export {
+  createSolidTexture,
+  solidTextureBytes,
+  uploadCanvasTexture,
+} from "./texture.ts";

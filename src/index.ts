@@ -1,8 +1,16 @@
-export type { AnimationEvent, SpriteFrame } from "./animation/index.ts";
+export type { AnimationEvent, EaseFn, SpriteFrame, TweenHandle } from "./animation/index.ts";
 export {
   AnimationPlayer,
+  clamp01,
+  easeLinear,
+  easeOutBack,
+  easeOutCubic,
+  easeOutQuad,
   SpriteAnimationBinding,
   SpriteFrameClip,
+  Tween,
+  TweenPlayer,
+  tweenValue,
 } from "./animation/index.ts";
 export type { AssetLoadOptions } from "./assets/index.ts";
 export { AssetManager } from "./assets/index.ts";
@@ -23,7 +31,7 @@ export type {
   EngineSystem,
   EngineViewport,
 } from "./core/engine.ts";
-export { Engine } from "./core/engine.ts";
+export { canvasCssSize, Engine } from "./core/engine.ts";
 export type {
   BenchmarkBaseline,
   BenchmarkBudget,
@@ -106,16 +114,27 @@ export type {
 export { createCoordinateMapper } from "./platform/index.ts";
 export type {
   Camera2DOptions,
+  CanvasTextureSource,
   Image2DOptions,
   Renderer2DOptions,
   Renderer2DRenderOptions,
   SamplerSource,
+  Shape2DOptions,
   SpriteOptions,
   TexturedQuad,
   TextureRegion,
   TextureSource,
 } from "./render2d/index.ts";
-export { Camera2D, Image2D, Renderer2D, Sprite } from "./render2d/index.ts";
+export {
+  Camera2D,
+  createSolidTexture,
+  Image2D,
+  Renderer2D,
+  Shape2D,
+  solidTextureBytes,
+  Sprite,
+  uploadCanvasTexture,
+} from "./render2d/index.ts";
 export type { Aabb, SpatialEntry } from "./spatial/index.ts";
 export { UniformGrid } from "./spatial/index.ts";
 export type {
@@ -163,6 +182,8 @@ export {
   TilemapRuntime,
 } from "./tilemap/index.ts";
 export { UIBridge } from "./ui-bridge/index.ts";
+export type { HitRect } from "./ui/index.ts";
+export { hitTest, rectContains } from "./ui/index.ts";
 export type {
   EntityId,
   Matrix3,
