@@ -206,7 +206,13 @@ export {
   UIRoot,
   UISlider,
 } from "./ui/index.ts";
-export { UIBridge } from "./ui-bridge/index.ts";
+export {
+  UIBridge,
+  type UIBridgeButton,
+  type UIBridgeControl,
+  type UIBridgeControlHandler,
+  type UIBridgeSlider,
+} from "./ui-bridge/index.ts";
 export type {
   EntityId,
   Matrix3,
